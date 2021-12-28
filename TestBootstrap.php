@@ -17,7 +17,7 @@ function getProjectDir(): string
 
 $projectDir = getProjectDir();
 
-require_once $projectDir . '/vendor/autoload.php';
+require_once $projectDir . '/src/vendor/autoload.php';
 
 use Symfony\Component\Dotenv\Dotenv;
 

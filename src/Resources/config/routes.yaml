@@ -1,0 +1,3 @@
+graphql:
+    resource: ../../Api
+    type: annotation

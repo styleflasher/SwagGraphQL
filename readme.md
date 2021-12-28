@@ -15,7 +15,7 @@ bin/console plugin:install SwagGraphQL
 bin/console plugin:activate SwagGraphQL
 ```
 
-After installation the GraphQL endpoint is available under `{baseUrl}/graphql/query`.
+After installation the GraphQL endpoint is available under `{baseUrl}/api/graphql`.
 
 ## Getting started
 

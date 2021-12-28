@@ -1,3 +1,0 @@
-graphql:
-    resource: ../custom/plugins/SwagGraphQL/Api
-    type: annotation
