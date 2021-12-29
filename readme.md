@@ -31,7 +31,7 @@ either with the `swag_graphql.queries` or `swag_graphql.mutations` tag.
 In either case you have to specify the name under which the field will be queryable inside the service tag, 
 either as `mutation` or `query`
 
-####Example:
+#### Example:
 
 in `services.xml`:
 ```xml
@@ -78,13 +78,38 @@ class GenerateUserKeyAction implements GraphQLField
 }
 ```
 
+#### Connection Informations
+```graphql
+{
+	plugins {
+		total
+		pageInfo {
+			endCursor
+			hasNextPage
+			startCursor
+			hasPreviousPage
+			currentPage
+		}
+		aggregations {
+			name
+		}
+		edges {
+			node {
+				name
+				active
+			}
+		}
+	}
+}
+```
+
 ## Dependencies
 
-It uses [webonyx/graphql-php](https://github.com/webonyx/graphql-php) for the GraphQL part 
+It uses [webonyx/graphql-php](https://github.com/webonyx/graphql-php) for the GraphQL part, [doctrine/inflector](https://github.com/doctrine/inflector) for string manipulation 
 and the Shopware 6 Framework-Bundle for schema generation and query resolving.
 
 The Tests also depend on the Shopware 6 Content-Bundle.
 
 ## Known Problems
 
-Nested connections don't really work. The connection information (total, pageInfo and aggregation) aren't returned.
+Nested connections don't really work.
