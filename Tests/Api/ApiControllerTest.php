@@ -15,7 +15,7 @@ use SwagGraphQL\Api\UnsupportedContentTypeException;
 use SwagGraphQL\Resolver\QueryResolver;
 use SwagGraphQL\Schema\SchemaFactory;
 use SwagGraphQL\Schema\TypeRegistry;
-use SwagGraphQL\Test\Traits\GraphqlApiTest;
+use SwagGraphQL\Tests\Traits\GraphqlApiTest;
 use Symfony\Component\HttpFoundation\Request;
 
 class ApiControllerTest extends TestCase

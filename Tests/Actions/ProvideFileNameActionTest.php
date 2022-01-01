@@ -11,7 +11,7 @@ use SwagGraphQL\Api\ApiController;
 use SwagGraphQL\Resolver\QueryResolver;
 use SwagGraphQL\Schema\SchemaFactory;
 use SwagGraphQL\Schema\TypeRegistry;
-use SwagGraphQL\Test\Traits\GraphqlApiTest;
+use SwagGraphQL\Tests\Traits\GraphqlApiTest;
 
 class ProvideFileNameActionTest extends TestCase
 {
