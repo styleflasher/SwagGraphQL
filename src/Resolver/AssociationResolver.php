@@ -62,7 +62,7 @@ class AssociationResolver
                 case $field instanceof OneToManyAssociationField:
                 case $field instanceof ManyToOneAssociationField:
                 case $field instanceof OneToOneAssociationField:
-                return $field->getReferenceClass(); //@TODO: check return type (get entity instead of string)
+                return $field->getReferenceDefinition(); //@TODO: check return type (get entity instead of string) :getReferenceClass
             }
         }
 

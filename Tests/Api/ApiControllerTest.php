@@ -43,11 +43,11 @@ class ApiControllerTest extends TestCase
 
     public function testGenerateSchema()
     {
-        @unlink(__DIR__ . '/../../Resources/schema.graphql');
+        @unlink(__DIR__ . '/../../src/Resources/schema.graphql');
 
         $response = $this->apiController->generateSchema();
         static::assertEquals(200, $response->getStatusCode());
-        static::assertFileExists(__DIR__ . '/../../Resources/schema.graphql');
+        static::assertFileExists(__DIR__ . '/../../src/Resources/schema.graphql');
     }
 
     public function testQueryIntrospectionQuery()

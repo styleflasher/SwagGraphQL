@@ -22,14 +22,14 @@ class QueryResolver
 {
     private ContainerInterface $container;
 
-    private DefinitionInstanceRegistry $DefinitionInstanceRegistry;
+    private DefinitionInstanceRegistry $definitionInstanceRegistry;
 
     private Inflector $inflector;
 
     public function __construct(ContainerInterface $container, DefinitionInstanceRegistry $DefinitionInstanceRegistry, InflectorFactory $inflectorFactory)
     {
         $this->container = $container;
-        $this->DefinitionInstanceRegistry = $DefinitionInstanceRegistry;
+        $this->definitionInstanceRegistry = $DefinitionInstanceRegistry;
         $this->inflector = $inflectorFactory->getInflector();
     }
 
@@ -71,7 +71,7 @@ class QueryResolver
         if ($rootValue === null) {
             $entityName = $this->inflector->singularize($info->fieldName);
             $definitionName = $this->inflector->tableize($entityName);
-            $definition = $this->DefinitionInstanceRegistry->getDefinitions()[$definitionName];
+            $definition = $this->definitionInstanceRegistry->getDefinitions()[$definitionName];
             $repository = $this->getRepository($definition);
 
             $criteria = CriteriaParser::buildCriteria($args, $definition);
@@ -118,11 +118,11 @@ class QueryResolver
      */
     private function create($args, $context, ResolveInfo $info, string $entity): Entity
     {
-        $definition = $this->DefinitionInstanceRegistry->get($entity);
+        $definition = $this->definitionInstanceRegistry->getByEntityName($entity);
         $repo = $this->getRepository($definition);
 
         $event = $repo->create([$args], $context);
-        $id = $event->getEventByDefinition($definition)->getIds()[0];
+        $id = $event->getEventByEntityName($entity)->getIds()[0];
 
         $criteria = new Criteria([$id]);
         AssociationResolver::addAssociations($criteria, $info->lookahead()->queryPlan(), $definition);
@@ -135,11 +135,11 @@ class QueryResolver
      */
     private function update($args, $context, ResolveInfo $info, string $entity): Entity
     {
-        $definition = $this->DefinitionInstanceRegistry->get($entity);
+        $definition = $this->definitionInstanceRegistry->getByEntityName($entity);
         $repo = $this->getRepository($definition);
 
         $event = $repo->update([$args], $context);
-        $id = $event->getEventByDefinition($definition)->getIds()[0];
+        $id = $event->getEventByEntityName($entity)->getIds()[0];
 
         $criteria = new Criteria([$id]);
         AssociationResolver::addAssociations($criteria, $info->lookahead()->queryPlan(), $definition);
@@ -152,18 +152,18 @@ class QueryResolver
      */
     private function delete($args, $context, string $entity): string
     {
-        $definition = $this->DefinitionInstanceRegistry->get($entity);
+        $definition = $this->definitionInstanceRegistry->getByEntityName($entity);
         $repo = $this->getRepository($definition);
 
         $event = $repo->delete([$args], $context);
-        $id = $event->getEventByDefinition($definition)->getIds()[0];
+        $id = $event->getEventByEntityName($entity)->getIds()[0];
 
         return $id;
     }
 
     private function getRepository(EntityDefinition $definition): EntityRepositoryInterface
     {
-        return $this->DefinitionInstanceRegistry->getRepository($definition::getEntityName());
+        return $this->definitionInstanceRegistry->getRepository($definition::getEntityName());
     }
 
     private function wrapConnectionType(array $elements): ConnectionStruct

@@ -26,7 +26,7 @@ class AssociationResolverTest extends TestCase
                 'args' => [],
                 'fields' => []
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertEmpty($criteria->getAssociations());
     }
@@ -56,7 +56,7 @@ class AssociationResolverTest extends TestCase
                     ]
                 ]
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertArrayHasKey('product.manufacturer', $criteria->getAssociations());
         static::assertInstanceOf(Criteria::class, $criteria->getAssociations()['product.manufacturer']);
@@ -87,7 +87,7 @@ class AssociationResolverTest extends TestCase
                     ]
                 ]
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertArrayHasKey('product.categories', $criteria->getAssociations());
         static::assertInstanceOf(Criteria::class, $criteria->getAssociations()['product.categories']);
@@ -129,7 +129,7 @@ class AssociationResolverTest extends TestCase
                     ]
                 ]
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertArrayHasKey('product.categories', $criteria->getAssociations());
 
@@ -190,7 +190,7 @@ class AssociationResolverTest extends TestCase
 
                 ]
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertArrayHasKey('product.categories', $criteria->getAssociations());
 
@@ -254,7 +254,7 @@ class AssociationResolverTest extends TestCase
 
                 ]
             ]
-        ], ProductDefinition::class);
+        ], new ProductDefinition());
 
         static::assertArrayHasKey('product.categories', $criteria->getAssociations());
 
