@@ -219,7 +219,7 @@ class SalesChannelQueryResolver
     {
         return (new ConnectionStruct())->assign([
             'edges' => EdgeStruct::fromElements($elements, 0),
-            'total' => 0,
+            'total' => count($elements),
             'pageInfo' => new PageInfoStruct()
         ]);
     }

@@ -26,10 +26,10 @@ class QueryResolver
 
     private Inflector $inflector;
 
-    public function __construct(ContainerInterface $container, DefinitionInstanceRegistry $DefinitionInstanceRegistry, InflectorFactory $inflectorFactory)
+    public function __construct(ContainerInterface $container, DefinitionInstanceRegistry $definitionInstanceRegistry, InflectorFactory $inflectorFactory)
     {
         $this->container = $container;
-        $this->definitionInstanceRegistry = $DefinitionInstanceRegistry;
+        $this->definitionInstanceRegistry = $definitionInstanceRegistry;
         $this->inflector = $inflectorFactory->getInflector();
     }
 
@@ -166,18 +166,18 @@ class QueryResolver
         return $this->definitionInstanceRegistry->getRepository($definition::getEntityName());
     }
 
-    private function wrapConnectionType(array $elements): ConnectionStruct
+    public function wrapConnectionType(array $elements): ConnectionStruct
     {
         return (new ConnectionStruct())->assign([
             'edges' => EdgeStruct::fromElements($elements, 0),
-            'total' => 0,
+            'total' => count($elements),
             'pageInfo' => new PageInfoStruct()
         ]);
     }
 
     private function getSimpleValue($rootValue, ResolveInfo $info)
     {
-        $result = null;
+        $result = null ?? $rootValue;
 
         $getter = 'get' . ucfirst($info->fieldName);
         if (method_exists($rootValue, $getter)) {

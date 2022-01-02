@@ -37,7 +37,16 @@ class AssociationResolver
                 $association = static::getAssociationDefinition($definition, $field);
                 $associationCriteria = CriteriaParser::buildCriteria($selection['args'], $association);
                 static::addAssociations($associationCriteria, $selection['fields'], $association);
-                $criteria->addAssociation(sprintf('%s.%s', $definition::getEntityName(), $field), $associationCriteria);
+
+                $criteria->getAssociation($field) //@TODO: add association criteria
+                    ->setTotalCountMode(Criteria::TOTAL_COUNT_MODE_EXACT) // exact total count will be returned (slow)
+                    ->setLimit($associationCriteria->getLimit())
+                    ->setOffset($associationCriteria->getOffset())
+                    ->addFilter(...$associationCriteria->getFilters())
+                    ->addPostFilter(...$associationCriteria->getPostFilters())
+                    ->addSorting(...$associationCriteria->getSorting())
+                    ->setTerm($associationCriteria->getTerm())
+                    ->addAggregation(...$associationCriteria->getAggregations());
             }
         }
     }
