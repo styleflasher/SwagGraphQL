@@ -2,16 +2,16 @@
 
 namespace SwagGraphQL\Resolver\Struct;
 
-use Shopware\Core\Framework\DataAbstractionLayer\Entity;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\Struct\Struct;
 
 class EdgeStruct extends Struct
 {
-    protected ?Entity $node = null;
+    protected ?Struct $node = null;
 
     protected string $cursor = '';
 
-    public function getNode(): Entity
+    public function getNode()
     {
         return $this->node;
     }
@@ -26,6 +26,7 @@ class EdgeStruct extends Struct
         $edges = [];
         $index = 1;
         foreach ($elements as $element) {
+
             $edges[] = (new self())->assign([
                 'node' => $element,
                 'cursor' => base64_encode((string) ($offset + $index))

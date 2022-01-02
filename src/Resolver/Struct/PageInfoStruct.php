@@ -42,7 +42,7 @@ class PageInfoStruct extends Struct
 
         return (new self())->assign([
             'endCursor' => $total === 0 ? null : base64_encode((string) ($limit + $offset)),
-            'hasNextPage' => $total >= $limit + $offset,
+            'hasNextPage' => $total > $limit + $offset,
             'startCursor' => $total === 0 ? null : base64_encode((string) ($offset + 1)),
             'hasPreviousPage' => $offset > 0
         ]);
