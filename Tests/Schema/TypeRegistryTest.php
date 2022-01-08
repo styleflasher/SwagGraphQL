@@ -52,7 +52,10 @@ class TypeRegistryTest extends TestCase
             $this->DefinitionInstanceRegistry,
             new CustomTypes(),
             new CustomFieldRegistry(),
-            new CustomFieldRegistry()
+            new CustomFieldRegistry(),
+            new CustomFieldRegistry(),
+            new CustomFieldRegistry(),
+            new InflectorFactory(),
         );
     }
 

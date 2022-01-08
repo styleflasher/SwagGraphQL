@@ -4,12 +4,11 @@ namespace SwagGraphQL\Tests\Resolver;
 
 use PHPUnit\Framework\TestCase;
 use Shopware\Core\Content\Product\ProductDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\AvgAggregation;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\CountAggregation;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\MaxAggregation;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\MinAggregation;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\StatsAggregation;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\ValueCountAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\AvgAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\CountAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\MaxAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\MinAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\StatsAggregation;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
@@ -22,13 +21,13 @@ use SwagGraphQL\Resolver\CriteriaParser;
 
 class CriteriaParserTest extends TestCase
 {
-    public function testParsePaginationForward()
+    public function testParsePaginationForward(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'first' => 5,
             'after' => base64_encode('10')
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertEquals(Criteria::TOTAL_COUNT_MODE_EXACT, $criteria->getTotalCountMode());
@@ -36,13 +35,13 @@ class CriteriaParserTest extends TestCase
         static::assertEquals(10, $criteria->getOffset());
     }
 
-    public function testParsePaginationBackward()
+    public function testParsePaginationBackward(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'last' => 5,
             'before' => base64_encode('15')
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertEquals(Criteria::TOTAL_COUNT_MODE_EXACT, $criteria->getTotalCountMode());
@@ -50,20 +49,20 @@ class CriteriaParserTest extends TestCase
         static::assertEquals(10, $criteria->getOffset());
     }
 
-    public function testParseSorting()
+    public function testParseSorting(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'sortBy' => 'id',
             'sortDirection' => FieldSorting::DESCENDING
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertEquals('id', $criteria->getSorting()[0]->getField());
         static::assertEquals(FieldSorting::DESCENDING, $criteria->getSorting()[0]->getDirection());
     }
 
-    public function testParseEqualsQuery()
+    public function testParseEqualsQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -72,7 +71,7 @@ class CriteriaParserTest extends TestCase
                 'value' => 'test'
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(EqualsFilter::class, $criteria->getFilters()[0]);
@@ -80,7 +79,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('test', $criteria->getFilters()[0]->getValue());
     }
 
-    public function testParseEqualsAnyQuery()
+    public function testParseEqualsAnyQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -89,7 +88,7 @@ class CriteriaParserTest extends TestCase
                 'value' => 'test|fancy'
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(EqualsAnyFilter::class, $criteria->getFilters()[0]);
@@ -98,7 +97,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('fancy', $criteria->getFilters()[0]->getValue()[1]);
     }
 
-    public function testParseContainsQuery()
+    public function testParseContainsQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -107,7 +106,7 @@ class CriteriaParserTest extends TestCase
                 'value' => 'test'
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(ContainsFilter::class, $criteria->getFilters()[0]);
@@ -115,7 +114,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('test', $criteria->getFilters()[0]->getValue());
     }
 
-    public function testParseRangeQuery()
+    public function testParseRangeQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -133,7 +132,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(RangeFilter::class, $criteria->getFilters()[0]);
@@ -142,7 +141,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals(10, $criteria->getFilters()[0]->getParameter('lt'));
     }
 
-    public function testParseNotQuery()
+    public function testParseNotQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -157,7 +156,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(NotFilter::class, $criteria->getFilters()[0]);
@@ -169,7 +168,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('test', $inner->getValue());
     }
 
-    public function testParseMultiQuery()
+    public function testParseMultiQuery(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'query' => [
@@ -189,7 +188,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(MultiFilter::class, $criteria->getFilters()[0]);
@@ -207,7 +206,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('fancy', $second->getValue()[1]);
     }
 
-    public function testParseMaxAggregation()
+    public function testParseMaxAggregation(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'aggregations' => [
@@ -218,7 +217,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(MaxAggregation::class, $criteria->getAggregations()['max_id']);
@@ -226,7 +225,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('max_id', $criteria->getAggregations()['max_id']->getName());
     }
 
-    public function testParseMinAggregation()
+    public function testParseMinAggregation(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'aggregations' => [
@@ -237,7 +236,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(MinAggregation::class, $criteria->getAggregations()['min_id']);
@@ -245,7 +244,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('min_id', $criteria->getAggregations()['min_id']->getName());
     }
 
-    public function testParseAvgAggregation()
+    public function testParseAvgAggregation(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'aggregations' => [
@@ -256,7 +255,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(AvgAggregation::class, $criteria->getAggregations()['avg_id']);
@@ -264,7 +263,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('avg_id', $criteria->getAggregations()['avg_id']->getName());
     }
 
-    public function testParseCountAggregation()
+    public function testParseCountAggregation(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'aggregations' => [
@@ -275,7 +274,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(CountAggregation::class, $criteria->getAggregations()['count_id']);
@@ -283,26 +282,7 @@ class CriteriaParserTest extends TestCase
         static::assertEquals('count_id', $criteria->getAggregations()['count_id']->getName());
     }
 
-    public function testParseValueCountAggregation()
-    {
-        $criteria = CriteriaParser::buildCriteria([
-            'aggregations' => [
-                [
-                    'type' => 'value_count',
-                    'field' => 'id',
-                    'name' => 'value_count_id'
-                ]
-            ]
-        ],
-            ProductDefinition::class
-        );
-
-        static::assertInstanceOf(ValueCountAggregation::class, $criteria->getAggregations()['value_count_id']);
-        static::assertEquals('product.id', $criteria->getAggregations()['value_count_id']->getField());
-        static::assertEquals('value_count_id', $criteria->getAggregations()['value_count_id']->getName());
-    }
-
-    public function testParseStatsAggregation()
+    public function testParseStatsAggregation(): void
     {
         $criteria = CriteriaParser::buildCriteria([
             'aggregations' => [
@@ -313,7 +293,7 @@ class CriteriaParserTest extends TestCase
                 ]
             ]
         ],
-            ProductDefinition::class
+            new ProductDefinition()
         );
 
         static::assertInstanceOf(StatsAggregation::class, $criteria->getAggregations()['stats_id']);

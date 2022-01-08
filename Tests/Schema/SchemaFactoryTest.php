@@ -12,7 +12,7 @@ class SchemaFactoryTest extends TestCase
 {
     use IntegrationTestBehaviour;
 
-    public function testCreateSchema()
+    public function testCreateSchema(): void
     {
         $schema = SchemaFactory::createSchema($this->getContainer()->get(TypeRegistry::class));
 

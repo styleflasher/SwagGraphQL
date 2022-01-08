@@ -27,6 +27,7 @@ class ConnectionStructTest extends TestCase
         $criteria->setOffset(5);
 
         $result = new EntitySearchResult(
+            '',
             100,
             new EntityCollection([$entity1, $entity2]),
             new AggregationResultCollection([
