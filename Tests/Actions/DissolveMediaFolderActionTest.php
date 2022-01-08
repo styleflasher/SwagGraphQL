@@ -40,7 +40,7 @@ class DissolveMediaFolderActionTest extends TestCase
         $this->repository = $this->getContainer()->get('media_folder.repository');
     }
 
-    public function testDissolveMediaFolder()
+    public function testDissolveMediaFolder(): void
     {
         $folderId = Uuid::randomHex();
 
