@@ -49,5 +49,5 @@ if (!\class_exists(Dotenv::class)) {
 
 $dbUrl = \getenv('DATABASE_URL');
 if ($dbUrl !== false) {
-//    \putenv('DATABASE_URL=' . $dbUrl . '_test');
+    \putenv('DATABASE_URL=' . $dbUrl . '_test');
 }
