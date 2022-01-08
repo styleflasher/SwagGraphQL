@@ -12,6 +12,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use SwagGraphQL\Api\ApiController;
 use SwagGraphQL\Api\UnsupportedContentTypeException;
+use SwagGraphQL\Factory\InflectorFactory;
 use SwagGraphQL\Resolver\QueryResolver;
 use SwagGraphQL\Schema\SchemaFactory;
 use SwagGraphQL\Schema\TypeRegistry;
@@ -35,8 +36,9 @@ class ApiControllerTest extends TestCase
     {
         $registry = $this->getContainer()->get(DefinitionInstanceRegistry::class);
         $schema = SchemaFactory::createSchema($this->getContainer()->get(TypeRegistry::class));
+        $inflector = new InflectorFactory();
 
-        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry));
+        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry, $inflector));
         $this->context = Context::createDefaultContext();
         $this->repository = $this->getContainer()->get('product.repository');
     }

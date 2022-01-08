@@ -9,7 +9,7 @@ class TestKernel extends Kernel
 {
     protected function initializePlugins(): void
     {
-        self::$plugins->add(new SwagGraphQL(true));
+        self::$plugins->add(new SwagGraphQL(true, __DIR__ . '/../'));
     }
 
     public function getProjectDir(): string

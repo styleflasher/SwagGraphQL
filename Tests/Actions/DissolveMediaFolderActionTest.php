@@ -9,6 +9,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\Uuid\Uuid;
 use SwagGraphQL\Api\ApiController;
+use SwagGraphQL\Factory\InflectorFactory;
 use SwagGraphQL\Resolver\QueryResolver;
 use SwagGraphQL\Schema\SchemaFactory;
 use SwagGraphQL\Schema\TypeRegistry;
@@ -31,8 +32,9 @@ class DissolveMediaFolderActionTest extends TestCase
     {
         $registry = $this->getContainer()->get(DefinitionInstanceRegistry::class);
         $schema = SchemaFactory::createSchema($this->getContainer()->get(TypeRegistry::class));
+        $inflector = new InflectorFactory();
 
-        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry));
+        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry, $inflector));
         $this->context = Context::createDefaultContext();
 
         $this->repository = $this->getContainer()->get('media_folder.repository');

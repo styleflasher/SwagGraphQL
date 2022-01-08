@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry;
 use SwagGraphQL\Api\ApiController;
+use SwagGraphQL\Factory\InflectorFactory;
 use SwagGraphQL\Resolver\QueryResolver;
 use SwagGraphQL\Schema\SchemaFactory;
 use SwagGraphQL\Schema\TypeRegistry;
@@ -27,12 +28,13 @@ class GenerateSalesChannelKeyActionTest extends TestCase
     {
         $registry = $this->getContainer()->get(DefinitionInstanceRegistry::class);
         $schema = SchemaFactory::createSchema($this->getContainer()->get(TypeRegistry::class));
+        $inflector = new InflectorFactory();
 
-        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry));
+        $this->apiController = new ApiController($schema, new QueryResolver($this->getContainer(), $registry, $inflector));
         $this->context = Context::createDefaultContext();
     }
 
-    public function testGenerateUserKey()
+    public function testGenerateUserKey(): void
     {
         $query = "
             query {

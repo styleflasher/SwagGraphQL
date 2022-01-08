@@ -10,16 +10,18 @@
 
     <php>
         <ini name="error_reporting" value="-1"/>
-        <server name="KERNEL_CLASS" value="SwagGraphQL\Test\TestKernel"/>
+<!--        <server name="KERNEL_CLASS" value="SwagGraphQL\Tests\TestKernel"/>-->
+        <server name="KERNEL_CLASS" value="Shopware\Development\Kernel"/>
         <env name="APP_ENV" value="test"/>
         <env name="APP_DEBUG" value="1"/>
         <env name="APP_SECRET" value="s$cretf0rt3st"/>
         <env name="SHELL_VERBOSITY" value="-1"/>
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="weak"/>
     </php>
 
     <testsuites>
         <testsuite name="SwagGraphQL Testsuite">
-            <directory>Test</directory>
+            <directory>Tests</directory>
         </testsuite>
     </testsuites>
 
@@ -28,8 +30,12 @@
             <directory suffix=".php">./</directory>
             <exclude>
                 <directory suffix=".php">./Tests</directory>
+                <directory suffix=".php">./bin</directory>
+                <directory suffix=".php">./tests</directory>
+                <directory suffix=".php">./vendor</directory>
+                <directory suffix=".php">./src/Resources</directory>
 
-                <file>SwagGraphQL.php</file>
+                <file>src/SwagGraphQL.php</file>
             </exclude>
         </whitelist>
     </filter>

@@ -1,11 +1,26 @@
 <?php declare(strict_types=1);
 
+/*
+ * (c) shopware AG <info@shopware.com>
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+use Shopware\Core\Framework\Test\TestCaseBase\KernelLifecycleManager;
+use Symfony\Component\Dotenv\Dotenv;
+
 function getProjectDir(): string
 {
-    $r = new \ReflectionClass($_SERVER['KERNEL_CLASS']);
-    $r = $r->getParentClass();
-    $dir = $rootDir = \dirname($r->getFileName());
-    while (!file_exists($dir . '/../composer.json')) {
+    if (isset($_SERVER['PROJECT_ROOT']) && \file_exists($_SERVER['PROJECT_ROOT'])) {
+        return $_SERVER['PROJECT_ROOT'];
+    }
+    if (isset($_ENV['PROJECT_ROOT']) && \file_exists($_ENV['PROJECT_ROOT'])) {
+        return $_ENV['PROJECT_ROOT'];
+    }
+
+    $rootDir = __DIR__ . '/../';
+    $dir = $rootDir;
+    while (!\file_exists($dir . '/.env')) {
         if ($dir === \dirname($dir)) {
             return $rootDir;
         }
@@ -15,15 +30,24 @@ function getProjectDir(): string
     return $dir;
 }
 
-$projectDir = getProjectDir();
+\define('TEST_PROJECT_DIR', getProjectDir());
 
-require_once $projectDir . '/vendor/autoload.php';
-
-use Symfony\Component\Dotenv\Dotenv;
-
-if (!class_exists(Dotenv::class)) {
-    throw new \RuntimeException('APP_ENV environment variable is not defined. You need to define environment variables for configuration or add "symfony/dotenv" as a Composer dependency to load variables from a .env file.');
+$loader = require TEST_PROJECT_DIR . '/vendor/autoload.php';
+KernelLifecycleManager::prepare($loader);
+$pluginVendorDir = __DIR__ . '/../vendor';
+if (\is_dir($pluginVendorDir)) {
+    require_once $pluginVendorDir . '/autoload.php';
+} else {
+    echo 'vendor directory not found. Please execute "composer dump-autoload"';
+    exit(1);
 }
-(new Dotenv())->load($projectDir . '/../.env');
 
-putenv('DATABASE_URL=' . getenv('DATABASE_URL') . '_test');
+if (!\class_exists(Dotenv::class)) {
+    throw new RuntimeException('APP_ENV environment variable is not defined. You need to define environment variables for configuration or add "symfony/dotenv" as a Composer dependency to load variables from a .env file.');
+}
+(new Dotenv(true))->load(TEST_PROJECT_DIR . '/.env');
+
+$dbUrl = \getenv('DATABASE_URL');
+if ($dbUrl !== false) {
+//    \putenv('DATABASE_URL=' . $dbUrl . '_test');
+}

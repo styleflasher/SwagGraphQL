@@ -2,6 +2,7 @@
 
 namespace SwagGraphQL\Tests\Schema;
 
+use Doctrine\Inflector\Inflector;
 use GraphQL\Type\Definition\BooleanType;
 use GraphQL\Type\Definition\FloatType;
 use GraphQL\Type\Definition\IDType;
@@ -27,6 +28,7 @@ use SwagGraphQL\Tests\_fixtures\BaseEntity;
 use SwagGraphQL\Tests\_fixtures\ManyToManyEntity;
 use SwagGraphQL\Tests\_fixtures\ManyToOneEntity;
 use SwagGraphQL\Tests\_fixtures\MappingEntity;
+use SwagGraphQL\Tests\Traits\SchemaTestTrait;
 use SwagGraphQL\Types\DateType;
 use SwagGraphQL\Types\JsonType;
 
