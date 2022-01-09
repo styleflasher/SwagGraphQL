@@ -9,11 +9,11 @@ trait GraphqlApiTest
 {
     use IntegrationTestBehaviour;
 
-    private function createGraphqlRequestRequest(string $query): Request
+    private function createGraphqlRequestRequest(string $query, string $method = Request::METHOD_POST): Request
     {
         $request = Request::create(
             'localhost',
-            Request::METHOD_POST,
+            $method,
             [],
             [],
             [],

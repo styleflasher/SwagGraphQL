@@ -25,7 +25,7 @@ class ConnectionStructTest extends TestCase
     protected function setUp(): void
     {
         $this->aggregator = $this->getContainer()->get(EntityAggregatorInterface::class);
-        $this->definition = $this->getContainer()->get('Shopware\Core\Content\Product\ProductDefinition');
+        $this->definition = $this->getContainer()->get(ProductDefinition::class);
     }
 
     public function testFromResult()

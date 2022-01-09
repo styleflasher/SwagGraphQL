@@ -13,7 +13,7 @@ help:
 test: ## Starts all Tests
 	php vendor/bin/phpunit --configuration=phpunit.xml
 
-stan: ## Starts the PHPStan Analyser
+stan: ## Starts the PHPStan Analyser //@TODO: --coverage-html coverage
 	@php vendor/bin/phpstan --memory-limit=150M analyze --level 5 --configuration phpstan.neon --autoload-file=../../../vendor/autoload.php .
 
 dev: ## Setup plugin dependencies

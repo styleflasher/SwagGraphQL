@@ -4,12 +4,12 @@ namespace SwagGraphQL\Tests\Api;
 
 use GraphQL\Type\Introspection;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
 use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\Uuid\Uuid;
 use SwagGraphQL\Api\ApiController;
 use SwagGraphQL\Api\UnsupportedContentTypeException;
 use SwagGraphQL\Factory\InflectorFactory;
@@ -82,8 +82,8 @@ class ApiControllerTest extends TestCase
         static::assertEquals(200, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         static::assertArrayNotHasKey('errors', $data);
-        static::assertEmpty($data['data']['products']['edges']);
-        static::assertEquals(0, $data['data']['products']['total']);
+        static::assertNotEmpty($data['data']['products']['edges']);
+        static::assertNotEquals(0, $data['data']['products']['total']);
     }
 
     public function testQueryGET()
@@ -101,7 +101,7 @@ class ApiControllerTest extends TestCase
 	            }
             }
         ';
-        $request = $request = Request::create(
+        $request = Request::create(
             'localhost',
             Request::METHOD_GET,
             ['query' => $query]
@@ -110,14 +110,14 @@ class ApiControllerTest extends TestCase
         static::assertEquals(200, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         static::assertArrayNotHasKey('errors', $data);
-        static::assertEmpty($data['data']['products']['edges']);
-        static::assertEquals(0, $data['data']['products']['total']);
+        static::assertNotEmpty($data['data']['products']['edges']);
+        static::assertNotEquals(0, $data['data']['products']['total']);
     }
 
     public function testQueryWithApplicationGraphQL()
     {
         $query = '
-            query {
+            {
 	            products {
 	                edges {
 	                    node {
@@ -129,6 +129,7 @@ class ApiControllerTest extends TestCase
 	            }
             }
         ';
+
         $request = Request::create(
             'localhost',
             Request::METHOD_POST,
@@ -138,13 +139,15 @@ class ApiControllerTest extends TestCase
             [],
             $query
         );
+
         $request->headers->add(['content_type' => 'application/graphql']);
         $response = $this->apiController->query($request, $this->context);
         static::assertEquals(200, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
+
         static::assertArrayNotHasKey('errors', $data);
-        static::assertEmpty($data['data']['products']['edges']);
-        static::assertEquals(0, $data['data']['products']['total']);
+        static::assertNotEmpty($data['data']['products']['edges']);
+        static::assertNotEquals(0, $data['data']['products']['total']);
     }
 
     public function testWithUnsupportedContentType()
@@ -158,13 +161,16 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductWithOneProduct()
     {
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -172,7 +178,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = "
             query {
@@ -196,13 +202,16 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithOneProduct()
     {
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -210,7 +219,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -241,17 +250,20 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithMultipleProduct()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'first product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -259,7 +271,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'second product',
                 'tax' => ['id' => $taxId],
@@ -267,7 +282,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'third product',
                 'tax' => ['id' => $taxId],
@@ -275,7 +293,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -316,17 +334,20 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithFilter()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'first product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -334,7 +355,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'second product',
                 'tax' => ['id' => $taxId],
@@ -342,7 +366,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'third product',
                 'tax' => ['id' => $taxId],
@@ -350,7 +377,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = "
             query {
@@ -388,17 +415,20 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithNestedFilter()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'first product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -406,7 +436,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test 2'],
                 'name' => 'second product',
                 'tax' => ['id' => $taxId],
@@ -414,7 +447,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'third product',
                 'tax' => ['id' => $taxId],
@@ -422,7 +458,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -466,18 +502,21 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithPagination()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
         $fourthProductId = $ids[3];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'z product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -485,7 +524,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'b product',
                 'tax' => ['id' => $taxId],
@@ -493,7 +535,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'c product',
                 'tax' => ['id' => $taxId],
@@ -501,7 +546,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $fourthProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'a product',
                 'tax' => ['id' => $taxId],
@@ -509,7 +557,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -558,18 +606,21 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithAggregation()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
         $fourthProductId = $ids[3];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'z product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -577,7 +628,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'b product',
                 'tax' => ['id' => $taxId],
@@ -585,7 +639,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'c product',
                 'tax' => ['id' => $taxId],
@@ -593,7 +650,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $fourthProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'a product',
                 'tax' => ['id' => $taxId],
@@ -601,7 +661,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -665,18 +725,21 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsWithGroupByAggregation()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstProductId = $ids[0];
         $secondProductId = $ids[1];
         $thirdProductId = $ids[2];
         $fourthProductId = $ids[3];
-        $taxId = Uuid::uuid4()->getHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $firstProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'manufacturer1'],
                 'name' => 'z product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -684,7 +747,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $secondProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'manufacturer2'],
                 'name' => 'b product',
                 'tax' => ['id' => $taxId],
@@ -692,7 +758,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $thirdProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'manufacturer1'],
                 'name' => 'c product',
                 'tax' => ['id' => $taxId],
@@ -700,7 +769,10 @@ class ApiControllerTest extends TestCase
             ],
             [
                 'id' => $fourthProductId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'manufacturer2'],
                 'name' => 'a product',
                 'tax' => ['id' => $taxId],
@@ -708,7 +780,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -767,13 +839,16 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsIncludesManyToOne()
     {
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -781,7 +856,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -818,18 +893,21 @@ class ApiControllerTest extends TestCase
 
     public function testQueryProductsIncludesOneToMany()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstId = $ids[0];
         $secondId = $ids[1];
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
-        $ruleId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
+        $ruleId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -844,7 +922,7 @@ class ApiControllerTest extends TestCase
                             'name' => 'test',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 15, 'net' => 10],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 15, 'net' => 10],
                     ],
                     [
                         'id' => $secondId,
@@ -855,13 +933,13 @@ class ApiControllerTest extends TestCase
                             'name' => 'test',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 10, 'net' => 5],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 5],
                     ],
                 ],
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -896,31 +974,34 @@ class ApiControllerTest extends TestCase
         static::assertEquals($productId, $productResult['id']);
         static::assertCount(2, $productResult['prices']['edges']);
 
-        $firstPriceRule =  $productResult['prices']['edges'][0]['node'];
+        $firstPriceRule = $productResult['prices']['edges'][0]['node'];
         static::assertCount(1, $firstPriceRule);
-        static::assertEquals(1,  $firstPriceRule['quantityStart']);
+        static::assertEquals(1, $firstPriceRule['quantityStart']);
 
-        $secondPriceRule =  $productResult['prices']['edges'][1]['node'];
+        $secondPriceRule = $productResult['prices']['edges'][1]['node'];
         static::assertCount(1, $secondPriceRule);
-        static::assertEquals(5,  $secondPriceRule['quantityStart']);
+        static::assertEquals(5, $secondPriceRule['quantityStart']);
 
         static::assertEquals(1, $data['data']['products']['total']);
     }
 
     public function testQueryProductsWithFilteredOneToMany()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstId = $ids[0];
         $secondId = $ids[1];
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
-        $ruleId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
+        $ruleId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -935,7 +1016,7 @@ class ApiControllerTest extends TestCase
                             'name' => 'test',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 15, 'net' => 10],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 15, 'net' => 10],
                     ],
                     [
                         'id' => $secondId,
@@ -946,13 +1027,13 @@ class ApiControllerTest extends TestCase
                             'name' => 'test',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 10, 'net' => 5],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 5],
                     ],
                 ],
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -993,28 +1074,31 @@ class ApiControllerTest extends TestCase
         static::assertEquals($productId, $productResult['id']);
         static::assertCount(1, $productResult['prices']['edges']);
 
-        $priceRule =  $productResult['prices']['edges'][0]['node'];
+        $priceRule = $productResult['prices']['edges'][0]['node'];
         static::assertCount(1, $priceRule);
-        static::assertEquals(5,  $priceRule['quantityStart']);
+        static::assertEquals(5, $priceRule['quantityStart']);
 
         static::assertEquals(1, $data['data']['products']['total']);
     }
 
     public function testQueryProductsIncludesOneToManyNested()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstId = $ids[0];
         $secondId = $ids[1];
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
-        $firstRuleId = Uuid::uuid4()->getHex();
-        $secondRuleId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
+        $firstRuleId = Uuid::randomHex();
+        $secondRuleId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -1029,7 +1113,7 @@ class ApiControllerTest extends TestCase
                             'name' => 'first Rule',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 15, 'net' => 10],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 15, 'net' => 10],
                     ],
                     [
                         'id' => $secondId,
@@ -1040,13 +1124,13 @@ class ApiControllerTest extends TestCase
                             'name' => 'second Rule',
                             'priority' => 1,
                         ],
-                        'price' => ['gross' => 10, 'net' => 5],
+                        'price' => ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 5],
                     ],
                 ],
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -1084,34 +1168,37 @@ class ApiControllerTest extends TestCase
         static::assertEquals($productId, $productResult['id']);
         static::assertCount(2, $productResult['prices']['edges']);
 
-        $firstPriceRule =  $productResult['prices']['edges'][0]['node'];
+        $firstPriceRule = $productResult['prices']['edges'][0]['node'];
         static::assertCount(2, $firstPriceRule);
-        static::assertEquals(1,  $firstPriceRule['quantityStart']);
+        static::assertEquals(1, $firstPriceRule['quantityStart']);
         static::assertCount(1, $firstPriceRule['rule']);
-        static::assertEquals('first Rule',  $firstPriceRule['rule']['name']);
+        static::assertEquals('first Rule', $firstPriceRule['rule']['name']);
 
-        $secondPriceRule =  $productResult['prices']['edges'][1]['node'];
+        $secondPriceRule = $productResult['prices']['edges'][1]['node'];
         static::assertCount(2, $secondPriceRule);
-        static::assertEquals(5,  $secondPriceRule['quantityStart']);
+        static::assertEquals(5, $secondPriceRule['quantityStart']);
         static::assertCount(1, $secondPriceRule['rule']);
-        static::assertEquals('second Rule',  $secondPriceRule['rule']['name']);
+        static::assertEquals('second Rule', $secondPriceRule['rule']['name']);
 
         static::assertEquals(1, $data['data']['products']['total']);
     }
 
     public function testQueryProductsIncludesManyToManyOnce()
     {
-        $ids = [Uuid::uuid4()->getHex(), Uuid::uuid4()->getHex()];
+        $ids = [Uuid::randomHex(), Uuid::randomHex()];
         sort($ids);
         $firstId = $ids[0];
         $secondId = $ids[1];
-        $productId = Uuid::uuid4()->getHex();
-        $taxId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
+        $taxId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['id' => $taxId, 'taxRate' => 13, 'name' => 'green'],
@@ -1129,7 +1216,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = '
             query {
@@ -1164,18 +1251,18 @@ class ApiControllerTest extends TestCase
         static::assertEquals($productId, $productResult['id']);
         static::assertCount(2, $productResult['categories']['edges']);
 
-        $firstCategory =  $productResult['categories']['edges'][0]['node'];
+        $firstCategory = $productResult['categories']['edges'][0]['node'];
         static::assertCount(1, $firstCategory);
         static::assertEquals('first Category', $firstCategory['name']);
 
-        $secondCategory =  $productResult['categories']['edges'][1]['node'];
+        $secondCategory = $productResult['categories']['edges'][1]['node'];
         static::assertCount(1, $secondCategory);
         static::assertEquals('second Category', $secondCategory['name']);
     }
 
     public function testCreateProduct()
     {
-        $manufacturerId = Uuid::uuid4()->getHex();
+        $manufacturerId = Uuid::randomHex();
         $query = "
             mutation {
 	            createProduct(
@@ -1211,18 +1298,21 @@ class ApiControllerTest extends TestCase
 
     public function testUpdateProduct()
     {
-        $productId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['taxRate' => 13, 'name' => 'green'],
                 'stock' => 25,
             ],
         ];
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = "
             mutation {
@@ -1249,12 +1339,15 @@ class ApiControllerTest extends TestCase
 
     public function testMutationDeleteProduct()
     {
-        $productId = Uuid::uuid4()->getHex();
+        $productId = Uuid::randomHex();
 
         $products = [
             [
                 'id' => $productId,
-                'price' => ['gross' => 10, 'net' => 9],
+                'productNumber' => Uuid::randomHex(),
+                'price' => [
+                    ['currencyId' => Defaults::CURRENCY, 'gross' => 10, 'net' => 9, 'linked' => false],
+                ],
                 'manufacturer' => ['name' => 'test'],
                 'name' => 'product',
                 'tax' => ['taxRate' => 13, 'name' => 'green'],
@@ -1262,7 +1355,7 @@ class ApiControllerTest extends TestCase
             ],
         ];
 
-        $this->repository->create($products, Context::createDefaultContext());
+        $this->repository->create($products, $this->context);
 
         $query = "
             mutation {
@@ -1279,6 +1372,6 @@ class ApiControllerTest extends TestCase
         static::assertArrayNotHasKey('errors', $data);
         static::assertEquals($productId, $data['data']['deleteProduct']);
 
-        static::assertCount(0, $this->repository->search(new Criteria([$productId]), Context::createDefaultContext())->getIds());
+        static::assertCount(0, $this->repository->search(new Criteria([$productId]), $this->context)->getIds());
     }
 }
