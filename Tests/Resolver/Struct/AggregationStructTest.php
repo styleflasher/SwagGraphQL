@@ -3,17 +3,42 @@
 namespace SwagGraphQL\Tests\Resolver\Struct;
 
 use PHPUnit\Framework\TestCase;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\AggregationResult\AggregationResult;
+use Shopware\Core\Content\Product\ProductEntity;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\AvgAggregation;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\StatsAggregation;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\AggregationResult\AggregationResultCollection;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\EntityAggregatorInterface;
+use Shopware\Core\Framework\Test\TestCaseBase\KernelTestBehaviour;
 use SwagGraphQL\Resolver\Struct\AggregationStruct;
 
 class AggregationStructTest extends TestCase
 {
+    use KernelTestBehaviour;
+
+    protected function setUp(): void
+    {
+        $this->aggregator = $this->getContainer()->get(EntityAggregatorInterface::class);
+        $this->definition = $this->getContainer()->get('Shopware\Core\Content\Product\ProductDefinition');
+
+        $entity1 = new ProductEntity();
+        $entity1->setId('1');
+        $entity2 = new ProductEntity();
+        $entity2->setId('2');
+        $criteria = new Criteria;
+        $criteria->setLimit(10);
+        $criteria->setOffset(5);
+
+        $this->criteria = $criteria;
+    }
+
     public function testFromAggregationResultSimpleAggregation()
     {
-        $aggregation = AggregationStruct::fromAggregationResult(
-            new AggregationResult(new AvgAggregation('field', 'name'), [['key' => null, 'avg' => 14]])
-        );
+        $criteria = clone $this->criteria;
+        $criteria->addAggregation(new AvgAggregation('avg', 'name'));
+        $context = Context::createDefaultContext();
+        $aggregationResult = $this->aggregator->aggregate($this->definition, clone $criteria, $context);
+        $aggregation = AggregationStruct::fromAggregationResult($aggregationResult);
 
         static::assertEquals('name', $aggregation->getName());
         static::assertCount(1, $aggregation->getBuckets());
@@ -27,19 +52,11 @@ class AggregationStructTest extends TestCase
 
     public function testFromAggregationResultStatsAggregation()
     {
-        $aggregation = AggregationStruct::fromAggregationResult(
-            new AggregationResult(
-                new StatsAggregation('field', 'name'), [
-                    [
-                        'key' => null,
-                        'count' => 1,
-                        'avg' => 2.0,
-                        'sum' => 3.0,
-                        'min' => 4.0,
-                        'max' => 5.0
-                    ]
-                ]
-            ));
+        $criteria = clone $this->criteria;
+        $criteria->addAggregation(new StatsAggregation('stats', 'name'));
+        $context = Context::createDefaultContext();
+        $aggregationResult = $this->aggregator->aggregate($this->definition, clone $criteria, $context);
+        $aggregation = AggregationStruct::fromAggregationResult($aggregationResult);
 
         static::assertEquals('name', $aggregation->getName());
         static::assertCount(1, $aggregation->getBuckets());
@@ -58,64 +75,14 @@ class AggregationStructTest extends TestCase
         static::assertEquals(5.0, $bucket->getResults()[4]->getResult());
     }
 
-    public function testFromAggregationResultValueCountAggregation()
-    {
-        $aggregation = AggregationStruct::fromAggregationResult(
-            new AggregationResult(
-                new ValueCountAggregation('field', 'name'), [
-                    [
-                        'key' => null,
-                        'values' => [
-                            'test' => 1,
-                            'another' => 2
-                        ]
-                    ]
-                ]
-            ));
-
-        static::assertEquals('name', $aggregation->getName());
-        static::assertCount(1, $aggregation->getBuckets());
-        $bucket = $aggregation->getBuckets()[0];
-        static::assertEquals([], $bucket->getKeys());
-        static::assertCount(2, $bucket->getResults());
-        static::assertEquals('test', $bucket->getResults()[0]->getType());
-        static::assertEquals(1, $bucket->getResults()[0]->getResult());
-        static::assertEquals('another', $bucket->getResults()[1]->getType());
-        static::assertEquals(2, $bucket->getResults()[1]->getResult());
-    }
-
-    public function testFromAggregationResultValueAggregation()
-    {
-        $aggregation = AggregationStruct::fromAggregationResult(
-            new AggregationResult(
-                new ValueAggregation('field', 'name'), [
-                    [
-                        'key' => null,
-                        'values' => [
-                            'test',
-                            'another'
-                        ]
-                    ]
-                ]
-            ));
-
-        static::assertEquals('name', $aggregation->getName());
-        static::assertCount(1, $aggregation->getBuckets());
-        $bucket = $aggregation->getBuckets()[0];
-        static::assertEquals([], $bucket->getKeys());
-        static::assertCount(2, $bucket->getResults());
-        static::assertEquals('0', $bucket->getResults()[0]->getType());
-        static::assertEquals('test', $bucket->getResults()[0]->getResult());
-        static::assertEquals('1', $bucket->getResults()[1]->getType());
-        static::assertEquals('another', $bucket->getResults()[1]->getResult());
-    }
-
     public function testFromAggregationResultCollection()
     {
-        $aggregations = AggregationStruct::fromCollection(new AggregationResultCollection([
-            new AggregationResult(new MaxAggregation('field', 'max'), [['key' => null, 'max' => 20]]),
-            new AggregationResult(new AvgAggregation('field', 'avg'), [['key' => null, 'avg' => 14]])
-        ]));
+        $criteria = clone $this->criteria;
+        $criteria->addAggregation(new MaxAggregation('max', 'name'));
+        $criteria->addAggregation(new AvgAggregation('avg', 'name'));
+        $context = Context::createDefaultContext();
+        $aggregationResult = $this->aggregator->aggregate($this->definition, clone $criteria, $context);
+        $aggregations = AggregationStruct::fromCollection(new AggregationResultCollection([$aggregationResult]));
 
         static::assertCount(2, $aggregations);
         static::assertEquals('max', $aggregations[0]->getName());
