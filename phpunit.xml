@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd" bootstrap="./Tests/TestBootstrap.php"
+         cacheResult="false">
+    <coverage>
+        <include>
+            <directory suffix=".php">./</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./Tests</directory>
+            <directory suffix=".php">./bin</directory>
+            <directory suffix=".php">./tests</directory>
+            <directory suffix=".php">./vendor</directory>
+            <directory suffix=".php">./src/Resources</directory>
+            <file>src/SwagGraphQL.php</file>
+        </exclude>
+    </coverage>
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <env name="KERNEL_CLASS" value="Shopware\Development\Kernel"/>
+        <env name="APP_ENV" value="test"/>
+        <env name="APP_DEBUG" value="1"/>
+        <env name="APP_SECRET" value="s$cretf0rt3st"/>
+        <env name="SHELL_VERBOSITY" value="-1"/>
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="weak"/>
+    </php>
+    <testsuites>
+        <testsuite name="SwagGraphQL Testsuite">
+            <directory>Tests</directory>
+        </testsuite>
+    </testsuites>
+    <listeners>
+        <listener class="Symfony\Bridge\PhpUnit\SymfonyTestsListener">
+            <arguments>
+                <array>
+                    <!-- set this option to 0 to disable the DebugClassLoader integration -->
+                    <element key="debug-class-loader">
+                        <integer>0</integer>
+                    </element>
+                </array>
+            </arguments>
+        </listener>
+        <!--<listener class="JohnKary\PHPUnit\Listener\SpeedTrapListener"/>-->
+        <!--Enable to see the db sideeffects of the tests. -->
+        <!--<listener class="Shopware\Core\Framework\Test\TestCaseBase\DatabaseCleanTestListener" />-->
+        <!--Enable to see Test structure violations. (Not formatted) -->
+        <!--<listener class="Shopware\Core\Framework\Test\TestCaseBase\TestValidityListener" />-->
+    </listeners>
+
+    <logging>
+        <log type="coverage-php" target="build/cov/coverage.cov"/>
+        <log type="coverage-clover" target="build/logs/clover.xml"/>
+    </logging>
+</phpunit>

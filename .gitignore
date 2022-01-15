@@ -77,12 +77,7 @@ app/config/parameters.yml
 !build/artifacts/.gitkeep
 ###> symfony/phpunit-bridge ###
 .phpunit
-/phpunit.xml
 ###< symfony/phpunit-bridge ###
-
-###> phpunit/phpunit ###
-/phpunit.xml
-###< phpunit/phpunit ###
 
 ###> symfony/framework-bundle ###
 .env
