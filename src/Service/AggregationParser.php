@@ -18,7 +18,6 @@ class AggregationParser extends CoreAggregationParser
             throw new InvalidAggregationQueryException('The aggregations parameter has to be a list of aggregations.');
         }
 
-        //
         $reflectionAggregationParser = new ReflectionClass(CoreAggregationParser::class);
         $method = $reflectionAggregationParser->getMethod('parseAggregation');
         $method->setAccessible(true);

@@ -289,7 +289,7 @@ class TypeRegistry
                 $field = FieldBuilder::create($field->getPropertyName(), $type);
 
                 $name = $type->toString();
-                if ($name && substr($name, -10) === 'Connection') { // @TODO: I guess AclRoleConnection|IntegrationRoleCollection is the wrong one. We have to get the
+                if ($name && substr($name, -10) === 'Connection') {
                      $field->setArguments($this->getConnectionArgs());
                 }
 

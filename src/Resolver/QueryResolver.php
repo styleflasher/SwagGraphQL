@@ -156,9 +156,7 @@ class QueryResolver
         $repo = $this->getRepository($definition);
 
         $event = $repo->delete([$args], $context);
-        $id = $event->getEventByEntityName($entity)->getIds()[0];
-
-        return $id;
+        return $event->getEventByEntityName($entity)->getIds()[0];
     }
 
     private function getRepository(EntityDefinition $definition): EntityRepositoryInterface
