@@ -17,11 +17,8 @@ class PaymentAction implements GraphQLField
     private const ORDER_ID_ARGUMENT = 'orderId';
     private const FINISH_URL_ARGUMENT = 'finishUrl';
 
-    private PaymentService $paymentService;
-
-    public function __construct(PaymentService $paymentService)
+    public function __construct(private readonly PaymentService $paymentService)
     {
-        $this->paymentService = $paymentService;
     }
 
     public function returnType(): Type

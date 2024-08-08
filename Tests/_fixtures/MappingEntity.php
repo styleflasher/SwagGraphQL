@@ -12,12 +12,12 @@ use Shopware\Core\Framework\DataAbstractionLayer\MappingEntityDefinition;
 class MappingEntity extends MappingEntityDefinition
 {
 
-    public static function getEntityName(): string
+    public function getEntityName(): string
     {
         return 'mapping';
     }
 
-    protected static function defineFields(): FieldCollection
+    protected function defineFields(): FieldCollection
     {
         return new FieldCollection([
             (new FkField('association_id', 'associationId', AssociationEntity::class))->setFlags(new PrimaryKey(), new Required()),

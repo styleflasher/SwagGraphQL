@@ -12,12 +12,12 @@ use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
 class ManyToManyEntity extends EntityDefinition
 {
 
-    public static function getEntityName(): string
+    public function getEntityName(): string
     {
         return 'many_to_many';
     }
 
-    protected static function defineFields(): FieldCollection
+    protected function defineFields(): FieldCollection
     {
         return new FieldCollection([
             (new IdField('id', 'id'))->setFlags(new PrimaryKey(), new Required()),

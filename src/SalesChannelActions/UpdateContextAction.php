@@ -4,26 +4,18 @@ namespace SwagGraphQL\SalesChannelActions;
 
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
-use Shopware\Core\Checkout\Cart\Exception\CustomerNotLoggedInException;
-use Shopware\Core\Checkout\Cart\Exception\LineItemCoverNotFoundException;
-use Shopware\Core\Checkout\Cart\Exception\LineItemNotFoundException;
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
-use Shopware\Core\Checkout\Cart\Storefront\CartService;
+use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
+use Shopware\Core\Checkout\Customer\CustomerException;
 use Shopware\Core\Checkout\Customer\Exception\AddressNotFoundException;
-use Shopware\Core\Checkout\Payment\Exception\UnknownPaymentMethodException;
-use Shopware\Core\Checkout\Shipping\Exception\ShippingMethodNotFoundException;
-use Shopware\Core\Content\Product\Cart\ProductCollector;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Checkout\Shipping\ShippingException;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextPersister;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use SwagGraphQL\CustomFields\GraphQLField;
-use SwagGraphQL\Schema\CustomTypes;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilderCollection;
-use SwagGraphQL\Schema\TypeRegistry;
 
 class UpdateContextAction implements GraphQLField
 {
@@ -32,25 +24,13 @@ class UpdateContextAction implements GraphQLField
     private const SHIPPING_ADDRESS_ARGUMENT = 'shippingAddressId';
     private const BILLING_ADDRESS_ARGUMENT = 'billingAddressId';
 
-    private SalesChannelContextPersister $contextPersister;
-
-    private EntityRepositoryInterface $paymentMethodRepository;
-
-    private EntityRepositoryInterface $shippingMethodRepository;
-
-    private EntityRepositoryInterface $addressRepository;
-
     public function __construct(
-        SalesChannelContextPersister $contextPersister,
-        EntityRepositoryInterface $paymentMethodRepository,
-        EntityRepositoryInterface $shippingMethodRepository,
-        EntityRepositoryInterface $addressRepository
-    ) {
-
-        $this->contextPersister = $contextPersister;
-        $this->paymentMethodRepository = $paymentMethodRepository;
-        $this->shippingMethodRepository = $shippingMethodRepository;
-        $this->addressRepository = $addressRepository;
+        private readonly SalesChannelContextPersister $contextPersister,
+        private readonly EntityRepository             $paymentMethodRepository,
+        private readonly EntityRepository             $shippingMethodRepository,
+        private readonly EntityRepository             $addressRepository
+    )
+    {
     }
 
     public function returnType(): Type
@@ -75,7 +55,7 @@ class UpdateContextAction implements GraphQLField
     /**
      * @param SalesChannelContext $context
      */
-    public function resolve($rootValue, $args, $context, ResolveInfo $info): string
+    public function resolve($rootValue, $args, $context, ResolveInfo $resolveInfo): string
     {
         $update = [];
         if (array_key_exists(self::SHIPPING_METHOD_ARGUMENT, $args)) {
@@ -91,22 +71,9 @@ class UpdateContextAction implements GraphQLField
             $update[self::SHIPPING_ADDRESS_ARGUMENT] = $this->validateAddressId($args[self::SHIPPING_ADDRESS_ARGUMENT], $context);
         }
 
-        $this->contextPersister->save($context->getToken(), $update); //@TODO: saleschannelId is missing
+        $this->contextPersister->save($context->getToken(), $update, $context->getSalesChannelId());
 
         return $context->getToken();
-    }
-
-    private function validatePaymentMethodId(string $paymentMethodId, SalesChannelContext $context): string
-    {
-        $criteria = new Criteria();
-        $criteria->addFilter(new EqualsFilter('payment_method.id', $paymentMethodId));
-
-        $valid = $this->paymentMethodRepository->searchIds($criteria, $context->getContext());
-        if (!\in_array($paymentMethodId, $valid->getIds(), true)) {
-            throw new UnknownPaymentMethodException($paymentMethodId);
-        }
-
-        return $paymentMethodId;
     }
 
     private function validateShippingMethodId(string $shippingMethodId, SalesChannelContext $context): string
@@ -116,16 +83,29 @@ class UpdateContextAction implements GraphQLField
 
         $valid = $this->shippingMethodRepository->searchIds($criteria, $context->getContext());
         if (!\in_array($shippingMethodId, $valid->getIds(), true)) {
-            throw new ShippingMethodNotFoundException($shippingMethodId);
+            throw ShippingException::shippingMethodNotFound($shippingMethodId);
         }
 
         return $shippingMethodId;
     }
 
+    private function validatePaymentMethodId(string $paymentMethodId, SalesChannelContext $context): string
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('payment_method.id', $paymentMethodId));
+
+        $valid = $this->paymentMethodRepository->searchIds($criteria, $context->getContext());
+        if (!\in_array($paymentMethodId, $valid->getIds(), true)) {
+            throw CustomerException::unknownPaymentMethod($paymentMethodId);
+        }
+
+        return $paymentMethodId;
+    }
+
     private function validateAddressId(string $addressId, SalesChannelContext $context): string
     {
         if (!$context->getCustomer()) {
-            throw new CustomerNotLoggedInException();
+            throw CartException::customerNotLoggedIn();
         }
 
         $addresses = $this->addressRepository->search(new Criteria([$addressId]), $context->getContext());

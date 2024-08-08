@@ -2,13 +2,13 @@
 
 namespace SwagGraphQL\Resolver;
 
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Doctrine\Inflector\Inflector;
 use GraphQL\Executor\Executor;
 use GraphQL\Type\Definition\ResolveInfo;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use SwagGraphQL\Factory\InflectorFactory;
@@ -20,16 +20,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class QueryResolver
 {
-    private ContainerInterface $container;
+    private readonly Inflector $inflector;
 
-    private DefinitionInstanceRegistry $definitionInstanceRegistry;
-
-    private Inflector $inflector;
-
-    public function __construct(ContainerInterface $container, DefinitionInstanceRegistry $definitionInstanceRegistry, InflectorFactory $inflectorFactory)
+    public function __construct(private readonly ContainerInterface $container, private readonly DefinitionInstanceRegistry $definitionInstanceRegistry, InflectorFactory $inflectorFactory)
     {
-        $this->container = $container;
-        $this->definitionInstanceRegistry = $definitionInstanceRegistry;
         $this->inflector = $inflectorFactory->getInflector();
     }
 
@@ -46,7 +40,7 @@ class QueryResolver
         }
 
         try {
-            if (strpos($path, '__') === 0) {
+            if (str_starts_with($path, '__')) {
                 return Executor::defaultFieldResolver($rootValue, $args, $context, $info);
             }
             if ($info->operation->operation !== 'mutation') {
@@ -159,9 +153,9 @@ class QueryResolver
         return $event->getEventByEntityName($entity)->getIds()[0];
     }
 
-    private function getRepository(EntityDefinition $definition): EntityRepositoryInterface
+    private function getRepository(EntityDefinition $definition): EntityRepository
     {
-        return $this->definitionInstanceRegistry->getRepository($definition::getEntityName());
+        return $this->definitionInstanceRegistry->getRepository($definition->getEntityName());
     }
 
     public function wrapConnectionType(array $elements): ConnectionStruct

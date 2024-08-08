@@ -2,6 +2,7 @@
 
 namespace SwagGraphQL\SalesChannelActions;
 
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shopware\Core\Checkout\Cart\Exception\CustomerNotLoggedInException;
@@ -9,7 +10,6 @@ use Shopware\Core\Checkout\Cart\Exception\OrderNotFoundException;
 use Shopware\Core\Checkout\Cart\Saleschannel\CartService;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Content\Product\Cart\ProductCollector;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use SwagGraphQL\CustomFields\GraphQLField;
@@ -18,17 +18,11 @@ use SwagGraphQL\Schema\TypeRegistry;
 
 class CheckoutAction implements GraphQLField
 {
-    private CartService $cartService;
+    private readonly CartService $cartService;
 
-    private TypeRegistry $typeRegistry;
-
-    private EntityRepositoryInterface $orderRepository;
-
-    public function __construct(CartService $cartService, TypeRegistry $typeRegistry, EntityRepositoryInterface $orderRepository)
+    public function __construct(CartService $cartService, private readonly TypeRegistry $typeRegistry, private readonly EntityRepository $orderRepository)
     {
         $this->cartService = $cartService;
-        $this->typeRegistry = $typeRegistry;
-        $this->orderRepository = $orderRepository;
     }
 
     public function returnType(): Type

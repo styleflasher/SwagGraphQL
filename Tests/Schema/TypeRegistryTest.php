@@ -80,7 +80,7 @@ class TypeRegistryTest extends TestCase
             'string' => StringType::class
         ];
 
-        $fieldName = $this->inflector->camelize(BaseEntity::getEntityName());
+        $fieldName = $this->inflector->camelize((new \SwagGraphQL\Tests\_fixtures\BaseEntity)->getEntityName());
         $baseField = $query->getField($fieldName);
         static::assertObject($expectedFields, $baseField->getType());
         static::assertInputArgs([
@@ -109,7 +109,7 @@ class TypeRegistryTest extends TestCase
             'manyToOneId' => IDType::class,
             'manyToOne' => ObjectType::class
         ];
-        $fieldName = $this->inflector->camelize(AssociationEntity::getEntityName());
+        $fieldName = $this->inflector->camelize((new \SwagGraphQL\Tests\_fixtures\AssociationEntity)->getEntityName());
         $associationField = $query->getField($fieldName);
         static::assertObject($expectedFields, $associationField->getType());
 
@@ -121,7 +121,7 @@ class TypeRegistryTest extends TestCase
             'association' => ObjectType::class,
         ];
 
-        $fieldName = $this->inflector->camelize(ManyToManyEntity::getEntityName());
+        $fieldName = $this->inflector->camelize((new \SwagGraphQL\Tests\_fixtures\ManyToManyEntity)->getEntityName());
         $manyToManyField = $query->getField($fieldName);
         static::assertObject($expectedFields, $manyToManyField->getType());
 
@@ -133,7 +133,7 @@ class TypeRegistryTest extends TestCase
             'association' => ObjectType::class,
         ];
 
-        $fieldName = $this->inflector->camelize(ManyToOneEntity::getEntityName());
+        $fieldName = $this->inflector->camelize((new \SwagGraphQL\Tests\_fixtures\ManyToOneEntity)->getEntityName());
         $manyToOneField = $query->getField($fieldName);
         static::assertObject($expectedFields, $manyToOneField->getType());
 
@@ -177,7 +177,7 @@ class TypeRegistryTest extends TestCase
         static::assertEquals('Mutation', $query->name);
         static::assertCount(3, $query->getFields());
 
-        $create = new Mutation(Mutation::ACTION_CREATE, BaseEntity::getEntityName());
+        $create = new Mutation(Mutation::ACTION_CREATE, (new \SwagGraphQL\Tests\_fixtures\BaseEntity)->getEntityName());
         $createField = $query->getField($create->getName());
         static::assertObject([
             'id' => NonNull::class,
@@ -199,7 +199,7 @@ class TypeRegistryTest extends TestCase
             'string' => StringType::class
         ], $createField);
 
-        $update = new Mutation(Mutation::ACTION_UPDATE, BaseEntity::getEntityName());
+        $update = new Mutation(Mutation::ACTION_UPDATE, (new \SwagGraphQL\Tests\_fixtures\BaseEntity)->getEntityName());
         $updateField = $query->getField($update->getName());
         static::assertObject([
             'id' => NonNull::class,
@@ -221,7 +221,7 @@ class TypeRegistryTest extends TestCase
             'string' => StringType::class
         ], $updateField);
 
-        $delete = new Mutation(Mutation::ACTION_DELETE, BaseEntity::getEntityName());
+        $delete = new Mutation(Mutation::ACTION_DELETE, (new \SwagGraphQL\Tests\_fixtures\BaseEntity)->getEntityName());
         $deleteField = $query->getField($delete->getName());
         static::assertInstanceOf(IDType::class, $deleteField->getType());
         static::assertCount(1, $deleteField->args);
@@ -239,7 +239,7 @@ class TypeRegistryTest extends TestCase
         static::assertEquals('Mutation', $query->name);
         static::assertCount(9, $query->getFields());
 
-        $association = new Mutation(Mutation::ACTION_CREATE, AssociationEntity::getEntityName());
+        $association = new Mutation(Mutation::ACTION_CREATE, (new \SwagGraphQL\Tests\_fixtures\AssociationEntity)->getEntityName());
         $associationField = $query->getField($association->getName());
         static::assertObject([
             'manyToMany' => ObjectType::class,
@@ -256,7 +256,7 @@ class TypeRegistryTest extends TestCase
             'manyToOne' => InputObjectType::class
         ], $associationField);
 
-        $association = new Mutation(Mutation::ACTION_UPDATE, AssociationEntity::getEntityName());
+        $association = new Mutation(Mutation::ACTION_UPDATE, (new \SwagGraphQL\Tests\_fixtures\AssociationEntity)->getEntityName());
         $associationField = $query->getField($association->getName());
         static::assertObject([
             'manyToMany' => ObjectType::class,
@@ -273,13 +273,13 @@ class TypeRegistryTest extends TestCase
             'manyToOne' => InputObjectType::class
         ], $associationField);
 
-        $delete = new Mutation(Mutation::ACTION_DELETE, AssociationEntity::getEntityName());
+        $delete = new Mutation(Mutation::ACTION_DELETE, (new \SwagGraphQL\Tests\_fixtures\AssociationEntity)->getEntityName());
         $deleteField = $query->getField($delete->getName());
         static::assertInstanceOf(IDType::class, $deleteField->getType());
         static::assertCount(1, $deleteField->args);
         static::assertInstanceOf(NonNull::class, $deleteField->getArg('id')->getType());
 
-        $manyToMany = new Mutation(Mutation::ACTION_CREATE, ManyToManyEntity::getEntityName());
+        $manyToMany = new Mutation(Mutation::ACTION_CREATE, (new \SwagGraphQL\Tests\_fixtures\ManyToManyEntity)->getEntityName());
         $manyToManyField = $query->getField($manyToMany->getName());
         static::assertObject([
             'association' => ObjectType::class,
@@ -294,7 +294,7 @@ class TypeRegistryTest extends TestCase
             'association' => ListOfType::class,
         ], $manyToManyField);
 
-        $manyToMany = new Mutation(Mutation::ACTION_UPDATE, ManyToManyEntity::getEntityName());
+        $manyToMany = new Mutation(Mutation::ACTION_UPDATE, (new \SwagGraphQL\Tests\_fixtures\ManyToManyEntity)->getEntityName());
         $manyToManyField = $query->getField($manyToMany->getName());
         static::assertObject([
             'association' => ObjectType::class,
@@ -309,13 +309,13 @@ class TypeRegistryTest extends TestCase
             'association' => ListOfType::class,
         ], $manyToManyField);
 
-        $delete = new Mutation(Mutation::ACTION_DELETE, ManyToManyEntity::getEntityName());
+        $delete = new Mutation(Mutation::ACTION_DELETE, (new \SwagGraphQL\Tests\_fixtures\ManyToManyEntity)->getEntityName());
         $deleteField = $query->getField($delete->getName());
         static::assertInstanceOf(IDType::class, $deleteField->getType());
         static::assertCount(1, $deleteField->args);
         static::assertInstanceOf(NonNull::class, $deleteField->getArg('id')->getType());
 
-        $manyToOne = new Mutation(Mutation::ACTION_CREATE, ManyToOneEntity::getEntityName());
+        $manyToOne = new Mutation(Mutation::ACTION_CREATE, (new \SwagGraphQL\Tests\_fixtures\ManyToOneEntity)->getEntityName());
         $manyToOneField = $query->getField($manyToOne->getName());
         static::assertObject([
             'association' => ObjectType::class,
@@ -330,7 +330,7 @@ class TypeRegistryTest extends TestCase
             'association' => ListOfType::class,
         ], $manyToOneField);
 
-        $manyToOne = new Mutation(Mutation::ACTION_UPDATE, ManyToOneEntity::getEntityName());
+        $manyToOne = new Mutation(Mutation::ACTION_UPDATE, (new \SwagGraphQL\Tests\_fixtures\ManyToOneEntity)->getEntityName());
         $manyToOneField = $query->getField($manyToOne->getName());
         static::assertObject([
             'association' => ObjectType::class,
@@ -345,7 +345,7 @@ class TypeRegistryTest extends TestCase
             'association' => ListOfType::class,
         ], $manyToOneField);
 
-        $delete = new Mutation(Mutation::ACTION_DELETE, ManyToOneEntity::getEntityName());
+        $delete = new Mutation(Mutation::ACTION_DELETE, (new \SwagGraphQL\Tests\_fixtures\ManyToOneEntity)->getEntityName());
         $deleteField = $query->getField($delete->getName());
         static::assertInstanceOf(IDType::class, $deleteField->getType());
         static::assertCount(1, $deleteField->args);

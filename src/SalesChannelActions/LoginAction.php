@@ -16,11 +16,8 @@ class LoginAction implements GraphQLField
     private const EMAIL_ARGUMENT = 'email';
     private const PASSWORD_ARGUMENT = 'password';
 
-    private AbstractLoginRoute $accountService;
-
-    public function __construct(AbstractLoginRoute $accountService)
+    public function __construct(private readonly AbstractLoginRoute $accountService)
     {
-        $this->accountService = $accountService;
     }
 
     public function returnType(): Type

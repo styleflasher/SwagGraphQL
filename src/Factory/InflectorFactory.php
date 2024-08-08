@@ -8,7 +8,7 @@ use Doctrine\Inflector\InflectorFactory as DoctrineInflectorFactory;
 
 class InflectorFactory
 {
-    private Inflector $inflector;
+    private readonly Inflector $inflector;
 
     public function __construct()
     {

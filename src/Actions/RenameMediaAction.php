@@ -2,11 +2,11 @@
 
 namespace SwagGraphQL\Actions;
 
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shopware\Core\Content\Media\File\FileSaver;
 use Shopware\Core\Content\Media\MediaDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use SwagGraphQL\CustomFields\GraphQLField;
@@ -19,20 +19,8 @@ class RenameMediaAction implements GraphQLField
     private const MEDIA_ID_ARGUMENT = 'mediaId';
     private const FILENAME_ARGUMENT = 'fileName';
 
-    private TypeRegistry $typeRegistry;
-
-    private FileSaver $fileSaver;
-
-    private EntityRepositoryInterface $mediaRepository;
-
-    public function __construct(
-        TypeRegistry $typeRegistry,
-        FileSaver $fileSaver,
-        EntityRepositoryInterface $mediaRepository
-    ) {
-        $this->typeRegistry = $typeRegistry;
-        $this->fileSaver = $fileSaver;
-        $this->mediaRepository = $mediaRepository;
+    public function __construct(private readonly TypeRegistry $typeRegistry, private readonly FileSaver $fileSaver, private readonly EntityRepository $mediaRepository)
+    {
     }
 
     public function returnType(): Type

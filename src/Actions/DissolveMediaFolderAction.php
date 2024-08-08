@@ -12,11 +12,8 @@ class DissolveMediaFolderAction implements GraphQLField
 {
     private const FOLDER_ID_ARGUMENT = 'mediaFolderId';
 
-    private MediaFolderService $mediaFolderService;
-
-    public function __construct(MediaFolderService $mediaFolderService)
+    public function __construct(private readonly MediaFolderService $mediaFolderService)
     {
-        $this->mediaFolderService = $mediaFolderService;
     }
 
     public function returnType(): Type

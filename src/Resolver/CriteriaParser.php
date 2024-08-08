@@ -31,7 +31,7 @@ class CriteriaParser
             $criteria->setLimit($args['first']);
 
             if (isset($args['after'])) {
-                $criteria->setOffset((int)base64_decode($args['after']));
+                $criteria->setOffset((int)base64_decode((string) $args['after']));
             }
 
             return;
@@ -40,7 +40,7 @@ class CriteriaParser
         if (isset($args['last'], $args['before'])) {
             $criteria->setLimit($args['last']);
 
-            $criteria->setOffset((int)base64_decode($args['before']) - $criteria->getLimit());
+            $criteria->setOffset((int)base64_decode((string) $args['before']) - $criteria->getLimit());
         }
     }
 
@@ -92,7 +92,7 @@ class CriteriaParser
     {
         if (isset($args['aggregations'])) {
             $e = new SearchRequestException();
-            AggregationParser::buildAggregations($definition, $args, $criteria, $e);
+            (new AggregationParser())->buildAggregations($definition, $args, $criteria, $e);
 
             $e->tryToThrow();
         }

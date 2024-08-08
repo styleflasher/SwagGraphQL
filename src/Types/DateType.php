@@ -23,7 +23,7 @@ class DateType extends ScalarType
         if (!$value instanceof \DateTimeInterface) {
             try {
                 $value = new \DateTime($value);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 throw new Error("Could not serialize following Date: " . $value);
             }
         }

@@ -26,9 +26,7 @@ class ObjectBuilder
 
             return $this->fields;
         };
-        $this->addField(FieldBuilder::create('__typename', Type::string())->setResolver(function () use ($name) {
-            return $name;
-        }));
+        $this->addField(FieldBuilder::create('__typename', Type::string())->setResolver(fn() => $name));
     }
 
     public static function create(string $name): self

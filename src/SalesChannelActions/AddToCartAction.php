@@ -5,11 +5,9 @@ namespace SwagGraphQL\SalesChannelActions;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shopware\Core\Checkout\Cart\Cart;
-use Shopware\Core\Checkout\Cart\Exception\CustomerNotLoggedInException;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
-use Shopware\Core\Checkout\Cart\Saleschannel\CartService;
-use Shopware\Core\Content\Product\Cart\ProductCollector;
-use Shopware\Core\System\SalesChannel\SalesChannelContext;
+use Shopware\Core\Checkout\Cart\LineItemFactoryRegistry;
+use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use SwagGraphQL\CustomFields\GraphQLField;
 use SwagGraphQL\Schema\CustomTypes;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilderCollection;
@@ -21,17 +19,14 @@ class AddToCartAction implements GraphQLField
     private const QUANTITY_ARGUMENT = 'quantity';
     private const PAYLOAD_ARGUMENT = 'payload';
 
-    private CartService $cartService;
+    private const LINE_ITEM_TYPE_ARGUMENT = 'lineItemType';
 
-    private TypeRegistry $typeRegistry;
-
-    private CustomTypes $customTypes;
-
-    public function __construct(CartService $cartService, TypeRegistry $typeRegistry, CustomTypes $customTypes)
+    public function __construct(
+        private readonly LineItemFactoryRegistry $lineItemFactory,
+        private readonly CartService             $cartService,
+        private readonly TypeRegistry            $typeRegistry,
+        private readonly CustomTypes             $customTypes)
     {
-        $this->cartService = $cartService;
-        $this->typeRegistry = $typeRegistry;
-        $this->customTypes = $customTypes;
     }
 
     public function returnType(): Type
@@ -44,7 +39,8 @@ class AddToCartAction implements GraphQLField
         return FieldBuilderCollection::create()
             ->addField(self::PRODUCT_ID_ARGUMENT, Type::nonNull(Type::id()))
             ->addField(self::QUANTITY_ARGUMENT, Type::nonNull(Type::int()))
-            ->addField(self::PAYLOAD_ARGUMENT, $this->customTypes->json());
+            ->addField(self::PAYLOAD_ARGUMENT, $this->customTypes->json())
+            ->addField(self::LINE_ITEM_TYPE_ARGUMENT, Type::string());
     }
 
     public function description(): string
@@ -54,18 +50,20 @@ class AddToCartAction implements GraphQLField
 
     public function resolve($rootValue, $args, $context, ResolveInfo $info): Cart
     {
-        if (!$context->getCustomer()) {
-            throw new CustomerNotLoggedInException();
-        }
-
+        $lineItemType = $args[self::LINE_ITEM_TYPE_ARGUMENT] ?? LineItem::PRODUCT_LINE_ITEM_TYPE;
         $cart = $this->cartService->getCart($context->getToken(), $context);
         $id = $args[self::PRODUCT_ID_ARGUMENT];
         $payload = array_replace_recursive(['id' => $id], $args[self::PAYLOAD_ARGUMENT] ?? []);
 
-        $lineItem = (new LineItem($id, LineItem::PRODUCT_LINE_ITEM_TYPE, $args[self::QUANTITY_ARGUMENT]))
-            ->setPayload($payload)
-            ->setRemovable(true)
-            ->setStackable(true);
+        $lineItem = $this->lineItemFactory->create(
+            [
+                'type' => $lineItemType,
+                'id' => $id,
+                'quantity' => $args[self::QUANTITY_ARGUMENT] ?? 1,
+                'payload' => $payload
+            ],
+            $context
+        );
 
         return $this->cartService->add($cart, $lineItem, $context);
     }

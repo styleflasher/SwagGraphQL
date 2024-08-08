@@ -37,7 +37,7 @@ class AggregationStruct extends Struct
     {
         $buckets = [];
 
-        switch (get_class($aggregation)) {
+        switch ($aggregation::class) {
             case AvgResult::class:
                 $bucket = AggregationBucketStruct::fromAggregationBucket(
                     [

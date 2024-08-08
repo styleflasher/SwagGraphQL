@@ -2,6 +2,8 @@
 
 namespace SwagGraphQL\Resolver;
 
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Exception\DefinitionNotFoundException;
 use Doctrine\Inflector\Inflector;
 use GraphQL\Executor\Executor;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -10,7 +12,6 @@ use Shopware\Core\Checkout\Customer\CustomerDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\OneToManyAssociationField;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -28,15 +29,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 //@TODO: simply this class and QueryResolver (both are almost the same)
 class SalesChannelQueryResolver
 {
-    private ContainerInterface $container;
+    private readonly Inflector $inflector;
 
-    private DefinitionInstanceRegistry $DefinitionInstanceRegistry;
-    private Inflector $inflector;
-
-    public function __construct(ContainerInterface $container, DefinitionInstanceRegistry $DefinitionInstanceRegistry, InflectorFactory $inflectorFactory)
+    public function __construct(private readonly ContainerInterface $container, private readonly DefinitionInstanceRegistry $DefinitionInstanceRegistry, InflectorFactory $inflectorFactory)
     {
-        $this->container = $container;
-        $this->DefinitionInstanceRegistry = $DefinitionInstanceRegistry;
         $this->inflector = $inflectorFactory->getInflector();
     }
 
@@ -53,7 +49,7 @@ class SalesChannelQueryResolver
         }
 
         try {
-            if (strpos($path, '__') === 0) {
+            if (str_starts_with($path, '__')) {
                 return Executor::defaultFieldResolver($rootValue, $args, $context, $info);
             }
             if ($info->operation->operation !== 'mutation') {
@@ -77,7 +73,7 @@ class SalesChannelQueryResolver
      * @param SalesChannelContext $context
      * @param ResolveInfo $info
      * @return 0|mixed|ConnectionStruct|null
-     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\DefinitionNotFoundException
+     * @throws DefinitionNotFoundException
      */
     private function resolveQuery($rootValue, $args, $context, ResolveInfo $info)
     {
@@ -88,7 +84,7 @@ class SalesChannelQueryResolver
 
             $criteria = CriteriaParser::buildCriteria($args, $definition);
 
-            $associationFields = $definition::getFields()->filterInstance(OneToManyAssociationField::class);
+            $associationFields = $definition->getFields()->filterInstance(OneToManyAssociationField::class);
             AssociationResolver::addAssociations($criteria, $info->lookahead()->queryPlan(), $definition);
 
             if ($definition === CustomerDefinition::class) {
@@ -102,7 +98,7 @@ class SalesChannelQueryResolver
                 /** @var OneToManyAssociationField $associationField */
                 foreach ($associationFields->getElements() as $associationField) {
                     if ($associationField->getReferenceClass() === SalesChannelDefinition::class) {
-                        $criteria->addFilter(new EqualsFilter($definition::getEntityName() . '.salesChannels.id', $context->getSalesChannel()->getId()));
+                        $criteria->addFilter(new EqualsFilter($definition->getEntityName() . '.salesChannels.id', $context->getSalesChannel()->getId()));
                     }
                 }
             }
@@ -201,16 +197,16 @@ class SalesChannelQueryResolver
         return $id;
     }
 
-    private function getRepository(EntityDefinition $definition): EntityRepositoryInterface
+    private function getRepository(EntityDefinition $definition): EntityRepository
     {
-        $repositoryClass = $definition::getEntityName() . '.repository';
+        $repositoryClass = $definition->getEntityName() . '.repository';
 
         if ($this->container->has($repositoryClass) === false) {
-            throw new \Exception('Repository not found: ' . $definition::getEntityName());
+            throw new \Exception('Repository not found: ' . $definition->getEntityName());
         }
 
-        /** @var EntityRepositoryInterface $repo */
-        $repo = $this->container->get($definition::getEntityName() . '.repository');
+        /** @var EntityRepository $repo */
+        $repo = $this->container->get($definition->getEntityName() . '.repository');
 
         return $repo;
     }

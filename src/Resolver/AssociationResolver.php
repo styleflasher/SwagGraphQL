@@ -75,6 +75,6 @@ class AssociationResolver
             }
         }
 
-        throw new \Exception(sprintf('Association "%s" on Entity "%s" not found', $association, $definition::getEntityName()));
+        throw new \Exception(sprintf('Association "%s" on Entity "%s" not found', $association, $definition->getEntityName()));
     }
 }

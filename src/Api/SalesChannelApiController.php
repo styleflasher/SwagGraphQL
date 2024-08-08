@@ -6,38 +6,30 @@ use GraphQL\GraphQL;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\SchemaPrinter;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use SwagGraphQL\Resolver\SalesChannelQueryResolver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * @RouteScope(scopes={"api"})
- */
+#[Route(defaults: ['_routeScope' => ['store-api']])]
 class SalesChannelApiController extends AbstractController
 {
-    private Schema $schema;
+    public const GRAPHQL_SCHEMA_FILE = 'schema.graphql';
 
-    private SalesChannelQueryResolver $queryResolver;
-
-    public function __construct(Schema $schema, SalesChannelQueryResolver $queryResolver)
+    public function __construct(private readonly Schema $schema, private readonly SalesChannelQueryResolver $queryResolver)
     {
-        $this->schema = $schema;
-        $this->queryResolver = $queryResolver;
     }
 
     /**
-     * @Route("api/storefront/graphql/generate-schema", name="storefront-api.graphql_generate_schema", methods={"GET"})
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return Response
      */
+    #[Route(path: '/store-api/graphql/generate-schema', name: 'store-api.graphql_generate_schema', methods: ['GET'])]
     public function generateSchema(): Response
     {
-        $fileName = sprintf('%s/../Resources/sales-channel-%s', __DIR__, ApiController::GRAPHQL_SCHEMA_FILE);
+        $fileName = sprintf('%s/../Resources/sales-channel-%s', __DIR__, self::GRAPHQL_SCHEMA_FILE);
 
         file_put_contents($fileName, SchemaPrinter::doPrint($this->schema));
         return new Response();
@@ -51,13 +43,13 @@ class SalesChannelApiController extends AbstractController
      * POST with JSON: query in body like {'query': '...'}
      * POST with application/graphql: query is complete body
      *
-     * @Route("api/storefront/graphql", name="storefront-api.graphql", methods={"GET|POST"})
      *
      * @param Request $request
      * @param SalesChannelContext $context
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return Response
      * @throws UnsupportedContentTypeException
      */
+    #[Route(path: '/store-api/graphql', name: 'store-api.graphql', methods: ['GET|POST'])]
     public function query(Request $request, SalesChannelContext $context): Response
     {
         //@TODO: refactor this
@@ -93,9 +85,7 @@ class SalesChannelApiController extends AbstractController
             $variables,
             null,
             // Default Resolver
-            function ($rootValue, $args, $context, ResolveInfo $info) {
-                return $this->queryResolver->resolve($rootValue, $args, $context, $info);
-            }
+            fn($rootValue, $args, $context, ResolveInfo $info) => $this->queryResolver->resolve($rootValue, $args, $context, $info)
         );
 
         return new JsonResponse($result->toArray());

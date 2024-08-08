@@ -2,6 +2,7 @@
 
 namespace SwagGraphQL\SalesChannelActions;
 
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shopware\Core\Checkout\Cart\Cart;
@@ -12,7 +13,6 @@ use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Cart\Saleschannel\CartService;
 use Shopware\Core\Content\Product\Cart\ProductCollector;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use SwagGraphQL\CustomFields\GraphQLField;
@@ -32,20 +32,11 @@ class UpdateLineItemAction implements GraphQLField
     private const DESCRIPTION_ARGUMENT = 'description';
     private const COVER_ARGUMENT = 'coverId';
 
-    private CartService $cartService;
+    private readonly CartService $cartService;
 
-    private TypeRegistry $typeRegistry;
-
-    private CustomTypes $customTypes;
-
-    private EntityRepositoryInterface $mediaRepository;
-
-    public function __construct(CartService $cartService, TypeRegistry $typeRegistry, CustomTypes $customTypes, EntityRepositoryInterface $mediaRepository)
+    public function __construct(CartService $cartService, private readonly TypeRegistry $typeRegistry, private readonly CustomTypes $customTypes, private readonly EntityRepository $mediaRepository)
     {
         $this->cartService = $cartService;
-        $this->typeRegistry = $typeRegistry;
-        $this->customTypes = $customTypes;
-        $this->mediaRepository = $mediaRepository;
     }
 
     public function returnType(): Type

@@ -15,6 +15,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\System\Country\Aggregate\CountryState\CountryStateDefinition;
 use Shopware\Core\System\Country\CountryDefinition;
+use Shopware\Core\System\Tax\Aggregate\TaxRule\TaxRuleDefinition;
 use SwagGraphQL\Schema\SchemaBuilder\EnumBuilder;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilder;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilderCollection;
@@ -43,8 +44,6 @@ class CustomTypes
     private static ?EnumType $aggregationTypes = null;
 
     private static ?InputObjectType $aggregation = null;
-
-    private static ?ObjectType $taxRule = null;
 
     private static ?ObjectType $aggregationResult = null;
 
@@ -219,20 +218,18 @@ class CustomTypes
     {
         if (static::$query === null) {
             static::$query = ObjectBuilder::create('SearchQuery')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(static::queryTypes()))->setDescription('The query type'))
-                        ->addFieldBuilder(FieldBuilder::create('operator', static::queryOperator())->setDescription('The operator used to combine the queries'))
-                        ->addFieldBuilder(FieldBuilder::create('queries', Type::listOf(static::query()))->setDescription('A nested list of SearchQueries'))
-                        ->addFieldBuilder(FieldBuilder::create('field', Type::string())->setDescription('The field used in the Query'))
-                        ->addFieldBuilder(FieldBuilder::create('value', Type::string())->setDescription('The value with which the field will be compared'))
-                        ->addFieldBuilder(FieldBuilder::create('parameters', Type::listOf(
-                            ObjectBuilder::create('Parameter')
-                                ->addField(FieldBuilder::create('operator', Type::nonNull(static::rangeOperator()))->setDescription('The operator used to compare the field and the value'))
-                                ->addField(FieldBuilder::create('value', Type::nonNull(Type::float()))->setDescription('The value with which the field will be compared'))
-                                ->buildAsInput()
-                        ))->setDescription('A list of parameters with which the field will be compared in a Range Query'));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(static::queryTypes()))->setDescription('The query type'))
+                    ->addFieldBuilder(FieldBuilder::create('operator', static::queryOperator())->setDescription('The operator used to combine the queries'))
+                    ->addFieldBuilder(FieldBuilder::create('queries', Type::listOf(static::query()))->setDescription('A nested list of SearchQueries'))
+                    ->addFieldBuilder(FieldBuilder::create('field', Type::string())->setDescription('The field used in the Query'))
+                    ->addFieldBuilder(FieldBuilder::create('value', Type::string())->setDescription('The value with which the field will be compared'))
+                    ->addFieldBuilder(FieldBuilder::create('parameters', Type::listOf(
+                        ObjectBuilder::create('Parameter')
+                            ->addField(FieldBuilder::create('operator', Type::nonNull(static::rangeOperator()))->setDescription('The operator used to compare the field and the value'))
+                            ->addField(FieldBuilder::create('value', Type::nonNull(Type::float()))->setDescription('The value with which the field will be compared'))
+                            ->buildAsInput()
+                    ))->setDescription('A list of parameters with which the field will be compared in a Range Query')))
                 ->setDescription('The DAL query that is used to filter the Items')
                 ->buildAsInput();
         }
@@ -244,13 +241,11 @@ class CustomTypes
     {
         if (static::$aggregation === null) {
             static::$aggregation = ObjectBuilder::create('Aggregation')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(static::aggregationTypes()))->setDescription('The aggregation type'))
-                        ->addFieldBuilder(FieldBuilder::create('name', Type::nonNull(Type::string()))->setDescription('The name of the aggregation'))
-                        ->addFieldBuilder(FieldBuilder::create('field', Type::nonNull(Type::string()))->setDescription('The field used to aggregate'))
-                        ->addFieldBuilder(FieldBuilder::create('groupByFields', Type::listOf(Type::string()))->setDescription('The fields used to group the result'));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(static::aggregationTypes()))->setDescription('The aggregation type'))
+                    ->addFieldBuilder(FieldBuilder::create('name', Type::nonNull(Type::string()))->setDescription('The name of the aggregation'))
+                    ->addFieldBuilder(FieldBuilder::create('field', Type::nonNull(Type::string()))->setDescription('The field used to aggregate'))
+                    ->addFieldBuilder(FieldBuilder::create('groupByFields', Type::listOf(Type::string()))->setDescription('The fields used to group the result')))
                 ->setDescription('A Aggregation the DAL should perform')
                 ->buildAsInput();
         }
@@ -258,32 +253,14 @@ class CustomTypes
         return static::$aggregation;
     }
 
-    public function taxRule(): ObjectType
-    {
-        if (static::$taxRule === null) {
-            static::$taxRule = ObjectBuilder::create('TaxRule')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('taxRate', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('percentage', Type::nonNull(Type::float())));
-            })
-                ->setDescription('A TaxRule inside a cart')
-                ->build();
-        }
-
-        return static::$taxRule;
-    }
-
     public function calculatedTax(): ObjectType
     {
         if (static::$calculatedTax === null) {
             static::$calculatedTax = ObjectBuilder::create('CalculatedTax')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('tax', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('taxRate', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('price', Type::nonNull(Type::float())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('tax', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('taxRate', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('price', Type::nonNull(Type::float()))))
                 ->setDescription('The calculated Tax for a calculated Price')
                 ->build();
         }
@@ -291,19 +268,16 @@ class CustomTypes
         return static::$calculatedTax;
     }
 
-    public function calculatedPrice(): ObjectType
+    public function calculatedPrice(TypeRegistry $typeRegistry): ObjectType
     {
         if (static::$calculatedPrice === null) {
             static::$calculatedPrice = ObjectBuilder::create('CalculatedPrice')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('unitPrice', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::int())))
-                        ->addFieldBuilder(FieldBuilder::create('totalPrice', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('calculatedTaxes', Type::listOf(static::calculatedTax())))
-                        ->addFieldBuilder(FieldBuilder::create('taxRules', Type::listOf(static::taxRule())));
-
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('unitPrice', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::int())))
+                    ->addFieldBuilder(FieldBuilder::create('totalPrice', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('calculatedTaxes', Type::listOf(static::calculatedTax())))
+                    ->addFieldBuilder(FieldBuilder::create('taxRules', Type::listOf($typeRegistry->getObjectForDefinition(TaxRuleDefinition::class)))))
                 ->setDescription('The calculated PRice for a LineItem')
                 ->build();
         }
@@ -315,11 +289,9 @@ class CustomTypes
     {
         if (static::$deliveryDate === null) {
             static::$deliveryDate = ObjectBuilder::create('DeliveryDate')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('earliest', static::date()))
-                        ->addFieldBuilder(FieldBuilder::create('latest', static::date()));
-            })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('earliest', static::date()))
+                    ->addFieldBuilder(FieldBuilder::create('latest', static::date())))
                 ->setDescription('A DeliveryDate for a LineItem')
                 ->build();
         }
@@ -331,15 +303,12 @@ class CustomTypes
     {
         if (static::$deliveryInformation === null) {
             static::$deliveryInformation = ObjectBuilder::create('DeliveryInformation')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('stock', Type::int()))
-                        ->addFieldBuilder(FieldBuilder::create('weight', Type::float()))
-                        ->addFieldBuilder(FieldBuilder::create('freeDelivery', Type::boolean()))
-                        ->addFieldBuilder(FieldBuilder::create('inStockDeliveryDate', static::deliveryDate()))
-                        ->addFieldBuilder(FieldBuilder::create('outOfStockDeliveryDate', static::deliveryDate()));
-
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('stock', Type::int()))
+                    ->addFieldBuilder(FieldBuilder::create('weight', Type::float()))
+                    ->addFieldBuilder(FieldBuilder::create('freeDelivery', Type::boolean()))
+                    ->addFieldBuilder(FieldBuilder::create('inStockDeliveryDate', static::deliveryDate()))
+                    ->addFieldBuilder(FieldBuilder::create('outOfStockDeliveryDate', static::deliveryDate())))
                 ->setDescription('The delivery Information for a LineItem')
                 ->build();
         }
@@ -351,23 +320,21 @@ class CustomTypes
     {
         if (static::$lineItem === null) {
             static::$lineItem = ObjectBuilder::create('LineItem')
-                ->addLazyFieldCollection(function () use ($typeRegistry) {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('key', Type::nonNull(Type::string())))
-                        ->addFieldBuilder(FieldBuilder::create('label', Type::string()))
-                        ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::int())))
-                        ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(Type::string())))
-                        ->addFieldBuilder(FieldBuilder::create('payload', static::json()))
-                        ->addFieldBuilder(FieldBuilder::create('price', static::calculatedPrice()))
-                        ->addFieldBuilder(FieldBuilder::create('good', Type::nonNull(Type::boolean())))
-                        ->addFieldBuilder(FieldBuilder::create('priority', Type::nonNull(Type::int())))
-                        ->addFieldBuilder(FieldBuilder::create('description', Type::string()))
-                        ->addFieldBuilder(FieldBuilder::create('cover', $typeRegistry->getObjectForDefinition(MediaDefinition::class)))
-                        ->addFieldBuilder(FieldBuilder::create('deliveryInformation', static::deliveryInformation()))
-                        ->addFieldBuilder(FieldBuilder::create('children', Type::listOf(static::lineItem($typeRegistry))))
-                        ->addFieldBuilder(FieldBuilder::create('removable', Type::nonNull(Type::boolean())))
-                        ->addFieldBuilder(FieldBuilder::create('stackable', Type::nonNull(Type::boolean())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('key', Type::nonNull(Type::string())))
+                    ->addFieldBuilder(FieldBuilder::create('label', Type::string()))
+                    ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::int())))
+                    ->addFieldBuilder(FieldBuilder::create('type', Type::nonNull(Type::string())))
+                    ->addFieldBuilder(FieldBuilder::create('payload', static::json()))
+                    ->addFieldBuilder(FieldBuilder::create('price', static::calculatedPrice($typeRegistry)))
+                    ->addFieldBuilder(FieldBuilder::create('good', Type::nonNull(Type::boolean())))
+                    ->addFieldBuilder(FieldBuilder::create('priority', Type::nonNull(Type::int())))
+                    ->addFieldBuilder(FieldBuilder::create('description', Type::string()))
+                    ->addFieldBuilder(FieldBuilder::create('cover', $typeRegistry->getObjectForDefinition(MediaDefinition::class)))
+                    ->addFieldBuilder(FieldBuilder::create('deliveryInformation', static::deliveryInformation()))
+                    ->addFieldBuilder(FieldBuilder::create('children', Type::listOf(static::lineItem($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('removable', Type::nonNull(Type::boolean())))
+                    ->addFieldBuilder(FieldBuilder::create('stackable', Type::nonNull(Type::boolean()))))
                 ->setDescription('A LineItem in the Cart')
                 ->build();
         }
@@ -375,19 +342,17 @@ class CustomTypes
         return static::$lineItem;
     }
 
-    public function cartPrice(): ObjectType
+    public function cartPrice(TypeRegistry $typeRegistry): ObjectType
     {
         if (static::$cartPrice === null) {
             static::$cartPrice = ObjectBuilder::create('CartPrice')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('netPrice', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('totalPrice', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('positionPrice', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('taxStatus', Type::nonNull(Type::string())))
-                        ->addFieldBuilder(FieldBuilder::create('calculatedTaxes', Type::listOf(static::calculatedTax())))
-                        ->addFieldBuilder(FieldBuilder::create('taxRules', Type::listOf(static::taxRule())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('netPrice', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('totalPrice', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('positionPrice', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('taxStatus', Type::nonNull(Type::string())))
+                    ->addFieldBuilder(FieldBuilder::create('calculatedTaxes', Type::listOf(static::calculatedTax())))
+                    ->addFieldBuilder(FieldBuilder::create('taxRules', Type::listOf($typeRegistry->getObjectForDefinition(TaxRuleDefinition::class)))))
                 ->setDescription('The Price of a cart')
                 ->build();
         }
@@ -395,15 +360,13 @@ class CustomTypes
         return static::$cartPrice;
     }
 
-    public function transaction(): ObjectType
+    public function transaction(TypeRegistry $typeRegistry): ObjectType
     {
         if (static::$transaction=== null) {
             static::$transaction = ObjectBuilder::create('Transaction')
-                ->addLazyFieldCollection(function () {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('amount', Type::nonNull(static::calculatedPrice())))
-                        ->addFieldBuilder(FieldBuilder::create('paymentMethodId', Type::nonNull(Type::id())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('amount', Type::nonNull(static::calculatedPrice($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('paymentMethodId', Type::nonNull(Type::id()))))
                 ->setDescription('A transaction inside the cart')
                 ->build();
         }
@@ -415,12 +378,10 @@ class CustomTypes
     {
         if (static::$shippingLocation=== null) {
             static::$shippingLocation = ObjectBuilder::create('ShippingLocation')
-                ->addLazyFieldCollection(function () use ($typeRegistry) {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('country', Type::nonNull($typeRegistry->getObjectForDefinition(CountryDefinition::class))))
-                        ->addFieldBuilder(FieldBuilder::create('countryState', $typeRegistry->getObjectForDefinition(CountryStateDefinition::class)))
-                        ->addFieldBuilder(FieldBuilder::create('address', $typeRegistry->getObjectForDefinition(CustomerAddressDefinition::class)));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('country', Type::nonNull($typeRegistry->getObjectForDefinition(CountryDefinition::class))))
+                    ->addFieldBuilder(FieldBuilder::create('countryState', $typeRegistry->getObjectForDefinition(CountryStateDefinition::class)))
+                    ->addFieldBuilder(FieldBuilder::create('address', $typeRegistry->getObjectForDefinition(CustomerAddressDefinition::class))))
                 ->setDescription('A Location for a Shipping.')
                 ->build();
         }
@@ -432,14 +393,12 @@ class CustomTypes
     {
         if (static::$deliveryPosition=== null) {
             static::$deliveryPosition = ObjectBuilder::create('DeliveryPosition')
-                ->addLazyFieldCollection(function () use ($typeRegistry) {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('lineItem', Type::nonNull(static::lineItem($typeRegistry))))
-                        ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::float())))
-                        ->addFieldBuilder(FieldBuilder::create('price', type::nonNull(static::calculatedPrice())))
-                        ->addFieldBuilder(FieldBuilder::create('identifier', type::nonNull(Type::string())))
-                        ->addFieldBuilder(FieldBuilder::create('deliveryDate', type::nonNull(static::deliveryDate())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('lineItem', Type::nonNull(static::lineItem($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('quantity', Type::nonNull(Type::float())))
+                    ->addFieldBuilder(FieldBuilder::create('price', type::nonNull(static::calculatedPrice($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('identifier', type::nonNull(Type::string())))
+                    ->addFieldBuilder(FieldBuilder::create('deliveryDate', type::nonNull(static::deliveryDate()))))
                 ->setDescription('A single position inside one Delivery.')
                 ->build();
         }
@@ -451,15 +410,13 @@ class CustomTypes
     {
         if (static::$delivery=== null) {
             static::$delivery = ObjectBuilder::create('Delivery')
-                ->addLazyFieldCollection(function () use ($typeRegistry) {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('positions', Type::listOf(static::deliveryPosition($typeRegistry))))
-                        ->addFieldBuilder(FieldBuilder::create('location', Type::nonNull(static::shippingLocation($typeRegistry))))
-                        ->addFieldBuilder(FieldBuilder::create('deliveryDate', type::nonNull(static::deliveryDate())))
-                        ->addFieldBuilder(FieldBuilder::create('shippingMethod', type::nonNull($typeRegistry->getObjectForDefinition(ShippingMethodDefinition::class))))
-                        ->addFieldBuilder(FieldBuilder::create('shippingCosts', type::nonNull(static::calculatedPrice())))
-                        ->addFieldBuilder(FieldBuilder::create('endDeliveryDate', type::nonNull(static::deliveryDate())));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('positions', Type::listOf(static::deliveryPosition($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('location', Type::nonNull(static::shippingLocation($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('deliveryDate', type::nonNull(static::deliveryDate())))
+                    ->addFieldBuilder(FieldBuilder::create('shippingMethod', type::nonNull($typeRegistry->getObjectForDefinition(ShippingMethodDefinition::class))))
+                    ->addFieldBuilder(FieldBuilder::create('shippingCosts', type::nonNull(static::calculatedPrice($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('endDeliveryDate', type::nonNull(static::deliveryDate()))))
                 ->setDescription('A delivery inside a cart.')
                 ->build();
         }
@@ -471,15 +428,13 @@ class CustomTypes
     {
         if (static::$cart === null) {
             static::$cart = ObjectBuilder::create('Cart')
-                ->addLazyFieldCollection(function () use ($typeRegistry) {
-                    return FieldBuilderCollection::create()
-                        ->addFieldBuilder(FieldBuilder::create('name', Type::nonNull(Type::string())))
-                        ->addFieldBuilder(FieldBuilder::create('token', Type::nonNull(Type::id())))
-                        ->addFieldBuilder(FieldBuilder::create('price', Type::nonNull(static::cartPrice())))
-                        ->addFieldBuilder(FieldBuilder::create('lineItems', Type::listOf(static::lineItem($typeRegistry))))
-                        ->addFieldBuilder(FieldBuilder::create('transactions', Type::listOf(static::transaction())))
-                        ->addFieldBuilder(FieldBuilder::create('deliveries', Type::listOf(static::delivery($typeRegistry))));
-                })
+                ->addLazyFieldCollection(fn() => FieldBuilderCollection::create()
+                    ->addFieldBuilder(FieldBuilder::create('name', Type::nonNull(Type::string())))
+                    ->addFieldBuilder(FieldBuilder::create('token', Type::nonNull(Type::id())))
+                    ->addFieldBuilder(FieldBuilder::create('price', Type::nonNull(static::cartPrice($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('lineItems', Type::listOf(static::lineItem($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('transactions', Type::listOf(static::transaction($typeRegistry))))
+                    ->addFieldBuilder(FieldBuilder::create('deliveries', Type::listOf(static::delivery($typeRegistry)))))
                 ->setDescription('The cart')
                 ->build();
         }

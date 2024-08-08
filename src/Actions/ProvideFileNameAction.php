@@ -14,11 +14,8 @@ class ProvideFileNameAction implements GraphQLField
     private const FILE_EXTENSION_ARGUMENT = 'fileExtension';
     private const MEDIA_ID_ARGUMENT = 'mediaId';
 
-    private FileNameProvider $nameProvider;
-
-    public function __construct(FileNameProvider $nameProvider)
+    public function __construct(private readonly FileNameProvider $nameProvider)
     {
-        $this->nameProvider = $nameProvider;
     }
 
     public function returnType(): Type

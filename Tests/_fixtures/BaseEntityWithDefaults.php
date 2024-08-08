@@ -13,12 +13,12 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityExistence;
 class BaseEntityWithDefaults extends EntityDefinition
 {
 
-    public static function getEntityName(): string
+    public function getEntityName(): string
     {
         return 'base';
     }
 
-    protected static function defineFields(): FieldCollection
+    protected function defineFields(): FieldCollection
     {
         return new FieldCollection([
             (new IdField('id', 'id'))->setFlags(new PrimaryKey(), new Required()),
@@ -26,7 +26,7 @@ class BaseEntityWithDefaults extends EntityDefinition
         ]);
     }
 
-    public static function getDefaults(EntityExistence $existence): array
+    public function getDefaults(EntityExistence $existence): array
     {
         if ($existence->exists()) {
             return [];

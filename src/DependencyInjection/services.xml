@@ -4,14 +4,6 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="SwagGraphQL\Api\ApiController" public="true">
-            <argument type="service" id="swag_graphql.schema"/>
-            <argument type="service" id="SwagGraphQL\Resolver\QueryResolver"/>
-            <call method="setContainer">
-                <argument type="service" id="service_container"/>
-            </call>
-        </service>
-
         <service id="SwagGraphQL\Api\SalesChannelApiController" public="true">
             <argument type="service" id="swag_graphql.sales_channel_schema"/>
             <argument type="service" id="SwagGraphQL\Resolver\SalesChannelQueryResolver"/>
@@ -20,15 +12,7 @@
             </call>
         </service>
 
-        <service id="SwagGraphQL\Schema\TypeRegistry">
-            <argument type="service" id="Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry"/>
-            <argument type="service" id="SwagGraphQL\Schema\CustomTypes"/>
-            <argument type="service" id="swag_graphql.query_registry"/>
-            <argument type="service" id="swag_graphql.mutation_registry"/>
-            <argument type="service" id="swag_graphql.sales_channel_query_registry"/>
-            <argument type="service" id="swag_graphql.sales_channel_mutation_registry"/>
-            <argument type="service" id="SwagGraphQL\Factory\InflectorFactory"/>
-        </service>
+        <service id="SwagGraphQL\Schema\TypeRegistry" autoconfigure="true" autowire="true" />
 
         <service id="SwagGraphQL\Factory\InflectorFactory"/>
         <service id="SwagGraphQL\Schema\SchemaFactory"/>
@@ -49,9 +33,8 @@
             <argument type="service" id="SwagGraphQL\Factory\InflectorFactory"/>
         </service>
 
-        <service id="SwagGraphQL\Resolver\SalesChannelQueryResolver">
+        <service id="SwagGraphQL\Resolver\SalesChannelQueryResolver" autoconfigure="true" autowire="true">
             <argument type="service" id="service_container"/>
-            <argument type="service" id="Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry"/>
         </service>
 
         <service id="SwagGraphQL\Schema\CustomTypes"/>
@@ -110,11 +93,7 @@
             <tag name="swag_graphql.sales_channel_mutations" mutation="getCart"/>
         </service>
 
-        <service id="SwagGraphQL\SalesChannelActions\AddToCartAction">
-            <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService"/>
-            <argument type="service" id="SwagGraphQL\Schema\TypeRegistry"/>
-            <argument type="service" id="SwagGraphQL\Schema\CustomTypes"/>
-
+        <service id="SwagGraphQL\SalesChannelActions\AddToCartAction" autowire="true">
             <tag name="swag_graphql.sales_channel_mutations" mutation="addToCart"/>
         </service>
 

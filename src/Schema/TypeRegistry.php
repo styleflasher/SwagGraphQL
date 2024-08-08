@@ -40,7 +40,6 @@ use Shopware\Core\Framework\DataAbstractionLayer\Field\TranslationsAssociationFi
 use Shopware\Core\Framework\DataAbstractionLayer\Field\UpdatedAtField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\VersionField;
 use Shopware\Core\Framework\DataAbstractionLayer\MappingEntityDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityExistence;
 use Shopware\Core\System\Language\LanguageDefinition;
 use Shopware\Core\System\Country\CountryDefinition;
 use Shopware\Core\System\Currency\CurrencyDefinition;
@@ -51,6 +50,7 @@ use SwagGraphQL\Resolver\QueryResolvingException;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilderCollection;
 use SwagGraphQL\Schema\SchemaBuilder\FieldBuilder;
 use SwagGraphQL\Schema\SchemaBuilder\ObjectBuilder;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class TypeRegistry
 {
@@ -59,59 +59,52 @@ class TypeRegistry
     /** @var InputObjectType[] */
     private array $inputTypes = [];
 
-    private DefinitionInstanceRegistry $definitionInstanceRegistry;
-
-    private CustomTypes $customTypes;
-
-    private CustomFieldRegistry $queries;
-
-    private CustomFieldRegistry $mutations;
-
-    private CustomFieldRegistry $salesChannelQueries;
-
-    private CustomFieldRegistry $salesChannelMutations;
-
-    private Inflector $inflector;
+    private readonly Inflector $inflector;
 
     public function __construct(
-        DefinitionInstanceRegistry $DefinitionInstanceRegistry,
-        CustomTypes $customTypes,
-        CustomFieldRegistry $queries,
-        CustomFieldRegistry $mutations,
-        CustomFieldRegistry $salesChannelQueries,
-        CustomFieldRegistry $salesChannelMutations,
+        private readonly DefinitionInstanceRegistry $definitionInstanceRegistry,
+        private readonly CustomTypes $customTypes,
+        #[Autowire(service: 'swag_graphql.query_registry')]
+        private readonly CustomFieldRegistry $queries,
+        #[Autowire(service: 'swag_graphql.mutation_registry')]
+        private readonly CustomFieldRegistry $mutations,
+        #[Autowire(service: 'swag_graphql.sales_channel_query_registry')]
+        private readonly CustomFieldRegistry $salesChannelQueries,
+        #[Autowire(service: 'swag_graphql.sales_channel_mutation_registry')]
+        private readonly CustomFieldRegistry $salesChannelMutations,
+        private readonly LanguageDefinition $languageDefinition,
+        private readonly CountryDefinition $countryDefinition,
+        private readonly CurrencyDefinition $currencyDefinition,
+        private readonly PaymentMethodDefinition $paymentMethodDefinition,
+        private readonly ShippingMethodDefinition $shippingMethodDefinition,
+        private readonly ProductDefinition $productDefinition,
+        private readonly CategoryDefinition $categoryDefinition,
+        private readonly SalutationDefinition $salutationDefinition,
+        private readonly CustomerDefinition $customerDefinition,
         InflectorFactory $inflectorFactory
     ) {
-        $this->definitionInstanceRegistry = $DefinitionInstanceRegistry;
-        $this->customTypes = $customTypes;
-        $this->queries = $queries;
-        $this->mutations = $mutations;
-        $this->salesChannelQueries = $salesChannelQueries;
-        $this->salesChannelMutations = $salesChannelMutations;
         $this->inflector = $inflectorFactory->getInflector();
     }
 
     /**
-     * @param EntityDefinition|string $definition
+     * @param string|EntityDefinition $definition
      * @return ObjectType
      */
-    public function getObjectForDefinition($definition): ObjectType
+    public function getObjectForDefinition(EntityDefinition|string $definition): ObjectType
     {
         if (is_string($definition)) {
             $definition = new $definition();
             $definition->compile($this->definitionInstanceRegistry);
         }
 
-        if (!isset($this->types[$definition::getEntityName()])) {
-            $this->types[$definition::getEntityName()] =
-                ObjectBuilder::create($this->inflector->classify($definition::getEntityName()))
-                ->addLazyFieldCollection(function () use ($definition) {
-                    return $this->getFieldsForDefinition($definition);
-                })
+        if (!isset($this->types[$definition->getEntityName()])) {
+            $this->types[$definition->getEntityName()] =
+                ObjectBuilder::create($this->inflector->classify($definition->getEntityName()))
+                ->addLazyFieldCollection(fn() => $this->getFieldsForDefinition($definition))
                 ->build();
         }
 
-        return $this->types[$definition::getEntityName()];
+        return $this->types[$definition->getEntityName()];
     }
 
     public function getQuery(): ObjectType
@@ -125,7 +118,7 @@ class TypeRegistry
             $this->addFieldsForDefinition($definition, $query);
         }
         return $query
-            ->addLazyFieldCollection(function () { return $this->customFields($this->queries); })
+            ->addLazyFieldCollection(fn() => $this->customFields($this->queries))
             ->build();
     }
 
@@ -133,22 +126,23 @@ class TypeRegistry
     {
         $query = ObjectBuilder::create('Query');
 
-        $this->addFieldsForDefinition(new LanguageDefinition(), $query);
-        $this->addFieldsForDefinition(new CountryDefinition(), $query);
-        $this->addFieldsForDefinition(new CurrencyDefinition(), $query);
-        $this->addFieldsForDefinition(new PaymentMethodDefinition(), $query);
-        $this->addFieldsForDefinition(new ShippingMethodDefinition(), $query);
-        $this->addFieldsForDefinition(new ProductDefinition(), $query);
-        $this->addFieldsForDefinition(new CategoryDefinition(), $query);
-        $this->addFieldsForDefinition(new SalutationDefinition(), $query);
+        $this->addFieldsForDefinition($this->languageDefinition, $query);
+        $this->addFieldsForDefinition($this->countryDefinition, $query);
+        $this->addFieldsForDefinition($this->customerDefinition, $query);
+        $this->addFieldsForDefinition($this->paymentMethodDefinition, $query);
+        $this->addFieldsForDefinition($this->shippingMethodDefinition, $query);
+        $this->addFieldsForDefinition($this->productDefinition, $query);
+        $this->addFieldsForDefinition($this->categoryDefinition, $query);
+        $this->addFieldsForDefinition($this->salutationDefinition, $query);
+        $this->addFieldsForDefinition($this->currencyDefinition, $query);
         $query->addField(
             FieldBuilder::create(
-                CustomerDefinition::getEntityName(),
-                $this->getObjectForDefinition(CustomerDefinition::class)
+                $this->customerDefinition->getEntityName(),
+                $this->getObjectForDefinition($this->customerDefinition)
             ));
 
         return $query
-            ->addLazyFieldCollection(function () { return $this->customFields($this->salesChannelQueries); })
+            ->addLazyFieldCollection(fn() => $this->customFields($this->salesChannelQueries))
             ->build();
     }
 
@@ -159,19 +153,19 @@ class TypeRegistry
             if ($this->isTranslationDefinition($definition) || $this->isMappingDefinition($definition)) {
                 continue;
             }
-            $createName = new Mutation(Mutation::ACTION_CREATE, $definition::getEntityName());
+            $createName = new Mutation(Mutation::ACTION_CREATE, $definition->getEntityName());
             $mutation->addField(
                 FieldBuilder::create($createName->getName(), $this->getObjectForDefinition($definition->getClass()))
                     ->setArguments($this->getInputFieldsForCreate($definition))
             );
 
-            $updateName = new Mutation(Mutation::ACTION_UPDATE, $definition::getEntityName());
+            $updateName = new Mutation(Mutation::ACTION_UPDATE, $definition->getEntityName());
             $mutation->addField(
                 FieldBuilder::create($updateName->getName(), $this->getObjectForDefinition($definition->getClass()))
                     ->setArguments($this->getInputFieldsForUpdate($definition))
             );
 
-            $deleteName = new Mutation(Mutation::ACTION_DELETE, $definition::getEntityName());
+            $deleteName = new Mutation(Mutation::ACTION_DELETE, $definition->getEntityName());
             $mutation->addField(
                 FieldBuilder::create($deleteName->getName(), Type::id())
                     ->setArguments($this->getPrimaryKeyArgs($definition))
@@ -179,7 +173,7 @@ class TypeRegistry
         }
 
         return $mutation
-            ->addLazyFieldCollection(function () { return $this->customFields($this->mutations); })
+            ->addLazyFieldCollection(fn() => $this->customFields($this->mutations))
             ->build();
     }
 
@@ -187,29 +181,27 @@ class TypeRegistry
     {
         $mutation = ObjectBuilder::create('Mutation');
 
-        $createName = new Mutation(Mutation::ACTION_CREATE, CustomerDefinition::getEntityName());
+        $createName = new Mutation(Mutation::ACTION_CREATE, $this->customerDefinition->getEntityName());
         $mutation->addField(
-            FieldBuilder::create($createName->getName(), $this->getObjectForDefinition(CustomerDefinition::class))
-                ->setArguments($this->getInputFieldsForCreate(CustomerDefinition::class))
+            FieldBuilder::create($createName->getName(), $this->getObjectForDefinition($this->customerDefinition))
+                ->setArguments($this->getInputFieldsForCreate($this->customerDefinition))
         );
 
-        $updateName = new Mutation(Mutation::ACTION_UPDATE, CustomerDefinition::getEntityName());
+        $updateName = new Mutation(Mutation::ACTION_UPDATE, $this->customerDefinition->getEntityName());
         $mutation->addField(
-            FieldBuilder::create($updateName->getName(), $this->getObjectForDefinition(CustomerDefinition::class))
+            FieldBuilder::create($updateName->getName(), $this->getObjectForDefinition($this->customerDefinition))
                 ->setArguments(
-                    $this->getInputFieldsForDefinition(CustomerDefinition::class, function($type) {
-                        return $type;
-                    })
+                    $this->getInputFieldsForDefinition($this->customerDefinition, fn($type) => $type)
                 ));
 
         return $mutation
-            ->addLazyFieldCollection(function () { return $this->customFields($this->salesChannelMutations); })
+            ->addLazyFieldCollection(fn() => $this->customFields($this->salesChannelMutations))
             ->build();
     }
 
     private function isTranslationDefinition($definition): bool
     {
-        return strpos($definition::getEntityName(), '_translation') !== false;
+        return str_contains((string) $definition->getEntityName(), '_translation');
     }
 
     private function isMappingDefinition($definition): bool
@@ -220,43 +212,39 @@ class TypeRegistry
 
     private function getInputForDefinition(EntityDefinition $definition): InputObjectType
     {
-        if (!isset($this->inputTypes[$definition::getEntityName()])) {
-            $this->inputTypes[$definition::getEntityName()] =
-                ObjectBuilder::create('Input' . $this->inflector->classify($definition::getEntityName()))
-                ->addLazyFieldCollection(function () use ($definition) {
-                    return $this->getInputFieldsForDefinition($definition);
-                })
+        if (!isset($this->inputTypes[$definition->getEntityName()])) {
+            $this->inputTypes[$definition->getEntityName()] =
+                ObjectBuilder::create('Input' . $this->inflector->classify($definition->getEntityName()))
+                ->addLazyFieldCollection(fn() => $this->getInputFieldsForDefinition($definition))
                 ->buildAsInput();
         }
 
-        return $this->inputTypes[$definition::getEntityName()];
+        return $this->inputTypes[$definition->getEntityName()];
     }
 
     private function getConnectionTypeForDefinition(EntityDefinition $definition): ObjectType
     {
-        if (!isset($this->types[$definition::getEntityName() . '_connection'])) {
+        if (!isset($this->types[$definition->getEntityName() . '_connection'])) {
 
-            $this->types[$definition::getEntityName() . '_connection'] =
-                ObjectBuilder::create($this->inflector->classify($definition::getEntityName()) . 'Connection')
+            $this->types[$definition->getEntityName() . '_connection'] =
+                ObjectBuilder::create($this->inflector->classify($definition->getEntityName()) . 'Connection')
                 ->addField(FieldBuilder::create('total', Type::int())->setDescription('The total of Items found by the Query'))
                 ->addField(FieldBuilder::create('edges', $this->getEdgeTypeForDefinition($definition))->setDescription('A List of the Items'))
                 ->addField(FieldBuilder::create('pageInfo', $this->customTypes->pageInfo())->setDescription('Additional information for pagination'))
                 ->addField(FieldBuilder::create('aggregations', Type::listOf($this->customTypes->aggregationResult()))->setDescription('the result of aggregations'))
-                ->addLazyFieldCollection(function () use ($definition) {
-                    return $this->getFieldsForDefinition($definition);
-                })
+                ->addLazyFieldCollection(fn() => $this->getFieldsForDefinition($definition))
                 ->setDescription('The Result for a search that returns multiple Items')
                 ->build();
         }
 
-        return $this->types[$definition::getEntityName() . '_connection'];
+        return $this->types[$definition->getEntityName() . '_connection'];
     }
 
     private function getEdgeTypeForDefinition(EntityDefinition $definition): ListOfType
     {
-        if (!isset($this->types[$definition::getEntityName() . '_edge'])) {
-            $this->types[$definition::getEntityName() . '_edge'] = Type::listOf(
-                ObjectBuilder::create($this->inflector->classify($definition::getEntityName()) . 'Edge')
+        if (!isset($this->types[$definition->getEntityName() . '_edge'])) {
+            $this->types[$definition->getEntityName() . '_edge'] = Type::listOf(
+                ObjectBuilder::create($this->inflector->classify($definition->getEntityName()) . 'Edge')
                 ->addField(FieldBuilder::create('node', $this->getObjectForDefinition($definition->getClass()))->setDescription('The Node of the Edge that contains the real element'))
                 ->addField(FieldBuilder::create('cursor', Type::id())->setDescription('The cursor to the Item of the Edge'))
                 ->setDescription('Contains the information for one Edge')
@@ -264,7 +252,7 @@ class TypeRegistry
             );
         }
 
-        return $this->types[$definition::getEntityName() . '_edge'];
+        return $this->types[$definition->getEntityName() . '_edge'];
     }
 
     private function getConnectionArgs(): FieldBuilderCollection
@@ -289,7 +277,7 @@ class TypeRegistry
                 $field = FieldBuilder::create($field->getPropertyName(), $type);
 
                 $name = $type->toString();
-                if ($name && substr($name, -10) === 'Connection') {
+                if ($name && str_ends_with($name, 'Connection')) {
                      $field->setArguments($this->getConnectionArgs());
                 }
 
@@ -324,7 +312,7 @@ class TypeRegistry
     ): FieldBuilderCollection
     {
         $fields = FieldBuilderCollection::create();
-        $defaults = $definition->getDefaults(new EntityExistence($definition->getEntityName(), [], false, false, false, []));
+        $defaults = $definition->getDefaults();
         /** @var Field $field */
         foreach ($definition->getFields() as $field) {
             $type = $this->getFieldType($field, true);
@@ -457,7 +445,7 @@ class TypeRegistry
 
     private function addFieldsForDefinition(EntityDefinition $definition, ObjectBuilder $query): void
     {
-        $fieldName = $this->inflector->camelize($definition::getEntityName());
+        $fieldName = $this->inflector->camelize($definition->getEntityName());
 
         $query->addField(
             FieldBuilder::create(

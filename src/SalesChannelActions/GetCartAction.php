@@ -17,17 +17,8 @@ class GetCartAction implements GraphQLField
 {
     public const CART_NAME_ARGUMENT = 'name';
 
-    private CartService $cartService;
-
-    private TypeRegistry $typeRegistry;
-
-    private CustomTypes $customTypes;
-
-    public function __construct(CartService $cartService, TypeRegistry $typeRegistry, CustomTypes $customTypes)
+    public function __construct(private readonly CartService $cartService, private readonly TypeRegistry $typeRegistry, private readonly CustomTypes $customTypes)
     {
-        $this->cartService = $cartService;
-        $this->typeRegistry = $typeRegistry;
-        $this->customTypes = $customTypes;
     }
 
     public function returnType(): Type
