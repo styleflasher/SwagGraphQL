@@ -26,12 +26,13 @@ use SwagGraphQL\Types\JsonType;
 class CustomTypes
 {
     private static ?DateType $dateType = null;
-
     private static ?JsonType $jsonType = null;
 
     private static ?EnumType $sortDirection = null;
 
     private static ?ObjectType $pageInfo = null;
+
+    private static ?InputObjectType $cartItemInputType = null;
 
     private static ?InputObjectType $query = null;
 
@@ -70,6 +71,22 @@ class CustomTypes
     private static ?ObjectType $delivery = null;
 
     // Custom Scalars
+
+    public function cartItemInput(): InputObjectType
+    {
+        if (static::$cartItemInputType === null) {
+            static::$cartItemInputType = ObjectBuilder::create('CartItemInput')
+                ->addField(FieldBuilder::create('productId', Type::nonNull(Type::id())))
+                ->addField(FieldBuilder::create('quantity', Type::nonNull(Type::int())))
+                ->addField(FieldBuilder::create('payload', $this->json()))
+                ->addField(FieldBuilder::create('lineItemType', Type::string()))
+                ->setDescription('The input for a CartItem')
+                ->buildAsInput();
+        }
+
+        return static::$cartItemInputType;
+    }
+
     public function date(): DateType
     {
         if (static::$dateType === null) {

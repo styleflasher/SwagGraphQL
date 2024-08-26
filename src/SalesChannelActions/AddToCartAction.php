@@ -15,11 +15,7 @@ use SwagGraphQL\Schema\TypeRegistry;
 
 class AddToCartAction implements GraphQLField
 {
-    private const PRODUCT_ID_ARGUMENT = 'productId';
-    private const QUANTITY_ARGUMENT = 'quantity';
-    private const PAYLOAD_ARGUMENT = 'payload';
-
-    private const LINE_ITEM_TYPE_ARGUMENT = 'lineItemType';
+    private const LINE_ITEMS_ARGUMENT = 'items';
 
     public function __construct(
         private readonly LineItemFactoryRegistry $lineItemFactory,
@@ -37,34 +33,45 @@ class AddToCartAction implements GraphQLField
     public function defineArgs(): FieldBuilderCollection
     {
         return FieldBuilderCollection::create()
-            ->addField(self::PRODUCT_ID_ARGUMENT, Type::nonNull(Type::id()))
-            ->addField(self::QUANTITY_ARGUMENT, Type::nonNull(Type::int()))
-            ->addField(self::PAYLOAD_ARGUMENT, $this->customTypes->json())
-            ->addField(self::LINE_ITEM_TYPE_ARGUMENT, Type::string());
+            ->addField(
+                self::LINE_ITEMS_ARGUMENT,
+                Type::nonNull(
+                    Type::listOf(
+                        $this->customTypes->cartItemInput()
+                    )
+                )
+            );
     }
 
     public function description(): string
     {
-        return 'Add a product to the Cart.';
+        return 'Add several products to the Cart.';
     }
 
-    public function resolve($rootValue, $args, $context, ResolveInfo $info): Cart
+    public function resolve($rootValue, $args, $context, ResolveInfo $resolveInfo): Cart
     {
-        $lineItemType = $args[self::LINE_ITEM_TYPE_ARGUMENT] ?? LineItem::PRODUCT_LINE_ITEM_TYPE;
+        $lineItems = $args[self::LINE_ITEMS_ARGUMENT];
+
         $cart = $this->cartService->getCart($context->getToken(), $context);
-        $id = $args[self::PRODUCT_ID_ARGUMENT];
-        $payload = array_replace_recursive(['id' => $id], $args[self::PAYLOAD_ARGUMENT] ?? []);
 
-        $lineItem = $this->lineItemFactory->create(
-            [
-                'type' => $lineItemType,
-                'id' => $id,
-                'quantity' => $args[self::QUANTITY_ARGUMENT] ?? 1,
-                'payload' => $payload
-            ],
-            $context
-        );
+        foreach($lineItems as $lineItemInput) {
+            $lineItemType = $lineItemInput['lineItemType'] ?? LineItem::PRODUCT_LINE_ITEM_TYPE;
+            $id = $lineItemInput['productId'];
+            $payload = array_replace_recursive(['id' => $id], $lineItemInput['payload'] ?? []);
 
-        return $this->cartService->add($cart, $lineItem, $context);
+            $lineItem = $this->lineItemFactory->create(
+                [
+                    'type' => $lineItemType,
+                    'id' => $id,
+                    'quantity' => $lineItemInput['quantity'] ?? 1,
+                    'payload' => $payload
+                ],
+                $context
+            );
+
+            $cart = $this->cartService->add($cart, $lineItem, $context);
+        }
+
+        return $cart;
     }
 }
